@@ -167,10 +167,7 @@ export default function VocalVersePage() {
 
       const intentResult = await understandUserIntent({ transcription });
 
-      let responseText = `I heard you say: "${transcription}", but I'm still learning to understand everything. Try asking me to schedule an event.`;
-      if (intentResult && intentResult.intent) {
-         responseText = `I've understood your intent is to "${intentResult.intent}". Here is the data I extracted: ${JSON.stringify(intentResult.parameters || {})}.`;
-      }
+      const responseText = intentResult.response;
       
       const { audioDataUri: responseAudioUri } = await generateSpokenResponse({ text: responseText });
 

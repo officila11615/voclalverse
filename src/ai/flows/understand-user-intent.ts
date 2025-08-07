@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview Understands the user's intent from transcribed text.
+ * @fileOverview Understands the user's intent from transcribed text and generates a helpful response.
  *
- * - understandUserIntent - A function that processes user input and returns the identified intent.
+ * - understandUserIntent - A function that processes user input and returns the identified intent and a generated response.
  * - UnderstandUserIntentInput - The input type for the understandUserIntent function.
  * - UnderstandUserIntentOutput - The return type for the understandUserIntent function.
  */
@@ -19,7 +19,8 @@ export type UnderstandUserIntentInput = z.infer<typeof UnderstandUserIntentInput
 const UnderstandUserIntentOutputSchema = z.object({
   intent: z.string().describe('The identified intent of the user, such as scheduling an event, asking a question, or requesting information.'),
   action: z.string().optional().describe('The action to be taken based on the identified intent.'),
-  parameters: z.record(z.string(), z.unknown()).optional().describe('Any parameters or details extracted from the user input that are relevant to fulfilling the intent.'),
+  parameters: z.record(z.any()).optional().describe('Any parameters or details extracted from the user input that are relevant to fulfilling the intent.'),
+  response: z.string().describe('A helpful, generated response to the user based on their request.'),
 });
 export type UnderstandUserIntentOutput = z.infer<typeof UnderstandUserIntentOutputSchema>;
 
@@ -31,17 +32,16 @@ const understandUserIntentPrompt = ai.definePrompt({
   name: 'understandUserIntentPrompt',
   input: {schema: UnderstandUserIntentInputSchema},
   output: {schema: UnderstandUserIntentOutputSchema},
-  prompt: `You are a virtual assistant that analyzes user voice commands to understand their intent.
-  Given the following transcription, identify the user's intent, the action to be taken (if any), and any relevant parameters.
+  prompt: `You are a helpful virtual assistant. Analyze the user's voice command to understand their intent and generate a helpful response.
+  Given the following transcription, identify the user's intent, any relevant parameters, and what action should be taken.
+  Most importantly, generate a concise and helpful response to the user's request.
+
+  For example, if the user says "schedule a meeting for tomorrow at 2pm", your response should be something like "OK, I've scheduled a meeting for tomorrow at 2pm. Is there anything else I can help with?".
+  If the user asks a question, answer it.
 
   Transcription: {{{transcription}}}
 
-  Output a JSON object containing the following fields:
-  - intent: A brief description of the user's intent.
-  - action (optional): The action to be taken based on the intent (e.g., schedule_event, get_weather, play_music).
-  - parameters (optional): A JSON object containing any parameters or details extracted from the user input that are relevant to fulfilling the intent. For example, if the intent is to schedule an event, the parameters might include the event name, date, time, and location.
-
-  Ensure that the output is a valid JSON object that conforms to the UnderstandUserIntentOutputSchema schema.
+  Output a JSON object that conforms to the specified output schema.
   `,
 });
 
