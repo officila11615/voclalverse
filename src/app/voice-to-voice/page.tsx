@@ -149,7 +149,7 @@ export default function VocalVersePage() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
+      recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = 'en-US';
 
@@ -158,14 +158,20 @@ export default function VocalVersePage() {
       };
 
       recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        if (finalTranscript) {
             // This is the "barge-in" logic. If the assistant is speaking, stop it.
             if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
             }
             playSound('confirmation');
-            handleSubmit(transcript);
+            handleSubmit(finalTranscript.trim());
         }
       };
 
@@ -174,7 +180,8 @@ export default function VocalVersePage() {
           setMicError(true);
           handleError("Microphone permission denied. Please grant access and refresh the page.", event, true);
         } else if (event.error === 'no-speech') {
-           // Do not restart here, onend will handle it.
+           // This can happen if the user stops talking. The `onend` handler will restart recognition.
+           // We don't need to treat this as a critical error.
         } else {
            handleError(`Speech recognition error: ${event.error}`, event, true);
         }
@@ -221,6 +228,10 @@ export default function VocalVersePage() {
     setIsLoading(true);
     
     try {
+      // Since continuous recognition is on, we might get multiple results. Stop it now.
+      if (recognitionRef.current) {
+          recognitionRef.current.stop();
+      }
       const intentResult = await getOpenRouterResponse({ transcription: text });
       const responseText = intentResult.response;
       
