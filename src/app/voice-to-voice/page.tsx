@@ -184,8 +184,8 @@ export default function VocalVersePage() {
     const lowerCaseText = text.toLowerCase().trim();
     const repeatCommands = ["repeat", "say that again", "what was that"];
     if (repeatCommands.includes(lowerCaseText) && lastResponse) {
-        speak(lastResponse);
         setAssistantState(AssistantState.Speaking);
+        speak(lastResponse);
         return;
     }
     
@@ -193,14 +193,14 @@ export default function VocalVersePage() {
       const intentResult = await getOpenRouterResponse({ transcription: text });
       const responseText = intentResult.response;
       setLastResponse(responseText);
-      speak(responseText);
       setAssistantState(AssistantState.Speaking);
+      speak(responseText);
     } catch (error) {
       console.error('Failed to get response. Please try again.', error);
       const errorMessage = 'Sorry, I had trouble getting a response. Please try again.';
       setLastResponse(errorMessage);
-      speak(errorMessage);
       setAssistantState(AssistantState.Speaking);
+      speak(errorMessage);
     }
   }, [stopRecognition, lastResponse, speak]);
   
@@ -258,8 +258,8 @@ export default function VocalVersePage() {
             setAssistantState(AssistantState.Error);
             const errorMessage = "Microphone permission denied. Please grant access in your browser settings and refresh the page.";
             setLastResponse(errorMessage);
-            speak(errorMessage); // Audibly inform the user
             setAssistantState(AssistantState.Speaking);
+            speak(errorMessage); // Audibly inform the user
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error(`Speech recognition error: ${event.error}`, event);
             // Attempt to recover by going idle
