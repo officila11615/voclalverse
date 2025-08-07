@@ -141,6 +141,9 @@ export default function VocalVersePage() {
       recognitionRef.current.lang = 'en-US';
 
       recognitionRef.current.onstart = () => {
+        if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
         playSound('start');
       };
 
