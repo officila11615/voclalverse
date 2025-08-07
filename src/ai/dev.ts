@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/understand-user-intent.ts';
+// Since we are not using Genkit flows anymore, this file can be left empty
+// or you can re-add Genkit flows here if you need them in the future.

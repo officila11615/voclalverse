@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { understandUserIntent } from '@/ai/flows/understand-user-intent';
+import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -99,7 +99,7 @@ export default function VocalVersePage() {
     setConversation(prev => [...prev, { type: 'assistant', text: '', isLoading: true }]);
 
     try {
-      const intentResult = await understandUserIntent({ transcription: text });
+      const intentResult = await getOpenRouterResponse({ transcription: text });
       const responseText = intentResult.response;
 
       setConversation(prev => {

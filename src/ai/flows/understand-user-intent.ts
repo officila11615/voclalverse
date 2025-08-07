@@ -1,58 +1,60 @@
 'use server';
 
 /**
- * @fileOverview Understands the user's intent from transcribed text and generates a helpful response.
+ * @fileOverview Calls the OpenRouter API to get a response from a specified model.
  *
- * - understandUserIntent - A function that processes user input and returns the identified intent and a generated response.
- * - UnderstandUserIntentInput - The input type for the understandUserIntent function.
- * - UnderstandUserIntentOutput - The return type for the understandUserIntent function.
+ * - getOpenRouterResponse - A function that takes a user's message and returns an AI-generated response.
+ * - GetOpenRouterResponseInput - The input type for the getOpenRouterResponse function.
+ * - GetOpenRouterResponseOutput - The return type for the getOpenRouterResponse function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
-const UnderstandUserIntentInputSchema = z.object({
-  transcription: z.string().describe('The transcribed text from the user\'s voice input.'),
+const GetOpenRouterResponseInputSchema = z.object({
+  transcription: z.string().describe("The user's message."),
 });
-export type UnderstandUserIntentInput = z.infer<typeof UnderstandUserIntentInputSchema>;
+export type GetOpenRouterResponseInput = z.infer<typeof GetOpenRouterResponseInputSchema>;
 
-const UnderstandUserIntentOutputSchema = z.object({
-  intent: z.string().describe('The identified intent of the user, such as scheduling an event, asking a question, or requesting information.'),
-  action: z.string().optional().describe('The action to be taken based on the identified intent.'),
-  parameters: z.record(z.string()).optional().describe('Any parameters or details extracted from the user input that are relevant to fulfilling the intent.'),
-  response: z.string().describe('A helpful, generated response to the user based on their request.'),
+const GetOpenRouterResponseOutputSchema = z.object({
+  response: z.string().describe('The AI-generated response.'),
 });
-export type UnderstandUserIntentOutput = z.infer<typeof UnderstandUserIntentOutputSchema>;
+export type GetOpenRouterResponseOutput = z.infer<typeof GetOpenRouterResponseOutputSchema>;
 
-export async function understandUserIntent(input: UnderstandUserIntentInput): Promise<UnderstandUserIntentOutput> {
-  return understandUserIntentFlow(input);
-}
+export async function getOpenRouterResponse(
+  input: GetOpenRouterResponseInput
+): Promise<GetOpenRouterResponseOutput> {
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || 'openai/gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI assistant. Your goal is to accurately recognize user intent and provide helpful, actionable responses. When you receive a transcription of a user\'s voice command, analyze the intent and reply with the exact answer, action step, or relevant information in a way that a smart voice assistant would. Never just repeat the intent—always generate a clear and useful response. If the intent isn’t clear, politely ask the user to clarify.',
+          },
+          { role: 'user', content: input.transcription },
+        ],
+      }),
+    });
 
-const understandUserIntentPrompt = ai.definePrompt({
-  name: 'understandUserIntentPrompt',
-  input: {schema: UnderstandUserIntentInputSchema},
-  output: {schema: UnderstandUserIntentOutputSchema},
-  prompt: `You are an AI assistant. Your goal is to accurately recognize user intent and provide helpful, actionable responses.
-When you receive a transcription of a user's voice command, analyze the intent and reply with the exact answer, action step, or relevant information in a way that a smart voice assistant would.
-Never just repeat the intent—always generate a clear and useful response. If the intent isn’t clear, politely ask the user to clarify.
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('OpenRouter API Error:', errorBody);
+      throw new Error(`OpenRouter API request failed with status ${response.status}`);
+    }
 
-Transcription: {{{transcription}}}
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content || 'Sorry, I could not get a response.';
+    
+    return GetOpenRouterResponseOutputSchema.parse({ response: aiResponse });
 
-Based on the transcription, determine the user's intent and generate a direct response. For example:
-- If the user says "What's the weather like?", your response should be "The weather is sunny with a high of 75 degrees." not "The user is asking about the weather."
-- If the user says "Set a timer for 5 minutes", your response should be "Your timer is set for 5 minutes." not "The user wants to set a timer."
-
-Output a JSON object that conforms to the specified output schema.`,
-});
-
-const understandUserIntentFlow = ai.defineFlow(
-  {
-    name: 'understandUserIntentFlow',
-    inputSchema: UnderstandUserIntentInputSchema,
-    outputSchema: UnderstandUserIntentOutputSchema,
-  },
-  async input => {
-    const {output} = await understandUserIntentPrompt(input);
-    return output!;
+  } catch (error) {
+    console.error('Failed to call OpenRouter API', error);
+    throw new Error('Failed to get response from OpenRouter.');
   }
-);
+}
