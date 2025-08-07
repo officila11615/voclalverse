@@ -32,10 +32,13 @@ export default function TextToTextPage() {
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
+      const viewport = scrollAreaRef.current.querySelector('div');
+      if (viewport) {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
     }
   };
 
@@ -53,11 +56,12 @@ export default function TextToTextPage() {
     };
 
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
+    const currentInputValue = inputValue;
     setInputValue('');
     setIsLoading(true);
 
     try {
-      const result = await getOpenRouterResponse({ transcription: inputValue });
+      const result = await getOpenRouterResponse({ transcription: currentInputValue });
       const assistantReply: Message = {
         id: Date.now() + 1,
         role: 'assistant',
@@ -116,7 +120,7 @@ export default function TextToTextPage() {
                  )}
                 <div
                   className={cn(
-                    'max-w-md rounded-lg p-3 shadow-md',
+                    'max-w-md rounded-lg p-3 shadow-lg',
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-br-none'
                       : 'bg-background/50 text-foreground rounded-bl-none'
@@ -158,7 +162,7 @@ export default function TextToTextPage() {
             />
             <Button size="icon" className="bg-primary hover:bg-primary/80" onClick={handleSendMessage} disabled={isLoading}>
               <Send className="w-5 h-5" />
-              <span className="sr-only">Send</span>
+              <span className="sr-only">Send Message</span>
             </Button>
           </div>
         </div>
