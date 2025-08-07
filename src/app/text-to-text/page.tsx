@@ -11,7 +11,8 @@ import { cn } from '@/lib/utils';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 type Message = {
   id: number;
@@ -27,6 +28,7 @@ export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [animationEnabled, setAnimationEnabled] = useState(true);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -94,17 +96,30 @@ export default function TextToTextPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden">
-       <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1A1A2E] to-[#16213E] bg-[length:200%_200%] animate-gradient"></div>
+       <div className={cn(
+          "absolute inset-0 z-0 bg-gradient-to-br from-[#1A1A2E] to-[#16213E] bg-[length:200%_200%]",
+          animationEnabled && "animate-gradient"
+        )}></div>
 
       <div className="relative z-10 flex flex-col h-full bg-black/10">
-        <header className="p-4 border-b border-white/10 shadow-lg flex items-center gap-4 bg-black/20 backdrop-blur-sm">
-          <Link href="/" passHref>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-6 h-6" />
-              <span className="sr-only">Back to Dashboard</span>
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
+        <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4 bg-black/20 backdrop-blur-sm">
+          <div className="flex items-center gap-4">
+            <Link href="/" passHref>
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-6 h-6" />
+                <span className="sr-only">Back to Dashboard</span>
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="animation-switch"
+              checked={animationEnabled}
+              onCheckedChange={setAnimationEnabled}
+            />
+            <Label htmlFor="animation-switch" className="text-white/80 text-sm">Animate BG</Label>
+          </div>
         </header>
         <main className="flex-1 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1 p-4 md:p-6" ref={scrollAreaRef}>
