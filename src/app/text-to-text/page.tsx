@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -185,12 +184,6 @@ export default function TextToTextPage() {
       <div className={cn("relative z-10 flex flex-col h-full animate-fade-in", !isAnimationEnabled && 'bg-gradient-to-br from-[#1A1A2E] to-[#16213E]', isAnimationEnabled && 'bg-black/40 backdrop-blur-sm' )}>
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/" passHref>
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-6 h-6" />
-                <span className="sr-only">Back to Dashboard</span>
-              </Button>
-            </Link>
             <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
           </div>
           <TooltipProvider>

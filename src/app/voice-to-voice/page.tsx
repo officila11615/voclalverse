@@ -2,11 +2,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { Loader2, MicOff, ArrowLeft } from 'lucide-react';
+import { Loader2, MicOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
-import { Button } from '@/components/ui/button';
 
 // Enum for the different states of the voice assistant
 enum AssistantState {
@@ -295,11 +293,6 @@ export default function VocalVersePage() {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground">
        <header className="p-4 border-b border-white/10 shadow-lg flex items-center">
-         <Link href="/" passHref>
-           <Button variant="ghost" size="icon">
-             <ArrowLeft className="w-6 h-6" />
-           </Button>
-         </Link>
          <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1 animate-fade-in">Voice to Voice</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
