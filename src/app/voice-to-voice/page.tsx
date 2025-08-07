@@ -98,6 +98,67 @@ export default function VocalVersePage() {
     }
   }, []);
   
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+        setAssistantState(AssistantState.Idle);
+        return;
+    }
+
+    // Stop listening before speaking
+    stopRecognition();
+    setAssistantState(AssistantState.Speaking);
+
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+
+    utterance.onend = () => {
+        if (isMountedRef.current && assistantState === AssistantState.Speaking) {
+            setAssistantState(AssistantState.Idle);
+        }
+    };
+    
+    utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+        console.error('SpeechSynthesis Error:', event);
+        if (event.error !== 'interrupted' && event.error !== 'canceled') {
+            toast({
+                variant: 'destructive',
+                title: 'Playback Error',
+                description: 'Sorry, there was an error during speech playback.',
+            });
+        }
+        if (isMountedRef.current && assistantState === AssistantState.Speaking) {
+            setAssistantState(AssistantState.Idle);
+        }
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, [assistantState, stopRecognition, toast]);
+
+  const handleSubmit = useCallback(async (text: string) => {
+    if (!text) {
+      setAssistantState(AssistantState.Idle);
+      return;
+    };
+    
+    setAssistantState(AssistantState.Thinking);
+    stopRecognition();
+    
+    try {
+      const intentResult = await getOpenRouterResponse({ transcription: text });
+      const responseText = intentResult.response;
+      
+      setTimeout(() => {
+          speak(responseText);
+      }, 2500);
+
+    } catch (error) {
+      console.error('Failed to get response. Please try again.', error);
+      speak('Sorry, I had trouble getting a response. Please try again.');
+    }
+  }, [speak, stopRecognition]);
+
   const startRecognition = useCallback(() => {
       // If we are not in a state where we should be listening, do nothing.
       if (assistantState === AssistantState.Thinking || assistantState === AssistantState.Speaking || assistantState === AssistantState.Error) {
@@ -173,68 +234,6 @@ export default function VocalVersePage() {
         setTimeout(() => startRecognition(), 250);
       }
   }, [assistantState, stopRecognition, playSound, handleSubmit, speak]);
-
-  const speak = useCallback((text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-        setAssistantState(AssistantState.Idle);
-        return;
-    }
-
-    // Stop listening before speaking
-    stopRecognition();
-    setAssistantState(AssistantState.Speaking);
-
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-
-    utterance.onend = () => {
-        if (isMountedRef.current && assistantState === AssistantState.Speaking) {
-            setAssistantState(AssistantState.Idle);
-        }
-    };
-    
-    utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
-        console.error('SpeechSynthesis Error:', event);
-        if (event.error !== 'interrupted' && event.error !== 'canceled') {
-            toast({
-                variant: 'destructive',
-                title: 'Playback Error',
-                description: 'Sorry, there was an error during speech playback.',
-            });
-        }
-        if (isMountedRef.current && assistantState === AssistantState.Speaking) {
-            setAssistantState(AssistantState.Idle);
-        }
-    };
-
-    window.speechSynthesis.speak(utterance);
-  }, [assistantState, stopRecognition, toast]);
-
-
-  const handleSubmit = useCallback(async (text: string) => {
-    if (!text) {
-      setAssistantState(AssistantState.Idle);
-      return;
-    };
-    
-    setAssistantState(AssistantState.Thinking);
-    stopRecognition();
-    
-    try {
-      const intentResult = await getOpenRouterResponse({ transcription: text });
-      const responseText = intentResult.response;
-      
-      setTimeout(() => {
-          speak(responseText);
-      }, 2500);
-
-    } catch (error) {
-      console.error('Failed to get response. Please try again.', error);
-      speak('Sorry, I had trouble getting a response. Please try again.');
-    }
-  }, [speak, stopRecognition]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -318,4 +317,5 @@ export default function VocalVersePage() {
     </div>
   );
 }
- 
+
+    
