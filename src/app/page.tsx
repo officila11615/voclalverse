@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Loader2, BrainCircuit, Mic } from 'lucide-react';
+import { Loader2, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
 import { cn } from '@/lib/utils';
 
-const WelcomeMessage = () => (
-  <div className="flex flex-col items-center justify-center h-full text-center p-4">
-    <BrainCircuit className="w-24 h-24 mb-6 text-primary" />
-    <h1 className="text-4xl font-bold font-headline text-foreground">VocalVerse</h1>
-    <p className="mt-2 text-lg text-muted-foreground">Your personal AI voice assistant.</p>
-    <p className="mt-4 text-muted-foreground">Click the microphone to start speaking.</p>
+const RecordingIndicator = () => (
+  <div className="flex items-center justify-center space-x-2 h-16">
+    <span className="w-2 h-8 bg-primary rounded-full animate-waveform" style={{ animationDelay: '0ms' }} />
+    <span className="w-2 h-12 bg-primary rounded-full animate-waveform" style={{ animationDelay: '200ms' }} />
+    <span className="w-2 h-6 bg-primary rounded-full animate-waveform" style={{ animationDelay: '400ms' }} />
+    <span className="w-2 h-12 bg-primary rounded-full animate-waveform" style={{ animationDelay: '600ms' }} />
+    <span className="w-2 h-8 bg-primary rounded-full animate-waveform" style={{ animationDelay: '800ms' }} />
   </div>
 );
 
@@ -123,7 +124,7 @@ export default function VocalVersePage() {
          <h1 className="text-2xl font-bold text-center font-headline">VocalVerse</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-          <WelcomeMessage />
+          {isRecording && <RecordingIndicator />}
        </main>
        <footer className="p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-center">
