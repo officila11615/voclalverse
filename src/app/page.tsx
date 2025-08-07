@@ -87,9 +87,12 @@ export default function VocalVersePage() {
         onEndCallback?.();
         startRecording(); 
       };
-      utterance.onerror = (event) => {
-        console.error('SpeechSynthesis Error:', event);
-        handleError('There was an error during speech playback.', null, false);
+      utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+        // Ignore 'interrupted' errors, which can happen if user speaks again mid-playback
+        if (event.error !== 'interrupted') {
+          console.error('SpeechSynthesis Error:', event);
+          handleError('There was an error during speech playback.', null, false);
+        }
         setIsLoading(false);
         onEndCallback?.();
       };
