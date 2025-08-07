@@ -15,7 +15,7 @@ export default function VoiceTranslatorPage() {
             <ArrowLeft className="w-6 h-6" />
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1">Voice Translator</h1>
+        <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1 animate-fade-in">Voice Translator</h1>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-4xl flex flex-col items-center gap-8">

@@ -14,7 +14,7 @@ const FeatureCard = ({ title, href, icon: Icon, children }: { title: string, hre
           <div className="p-3 bg-primary/20 rounded-full">
             <Icon className="w-6 h-6 text-primary" />
           </div>
-          <CardTitle className="text-xl font-bold text-white/90">{title}</CardTitle>
+          <CardTitle className="text-xl font-bold text-white/90 transition-all duration-300 group-hover:tracking-wider">{title}</CardTitle>
         </CardHeader>
         <CardContent className="flex-grow">
           <p className="text-muted-foreground">{children}</p>
@@ -28,7 +28,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground font-sans">
       <header className="p-4 border-b border-white/10 shadow-lg">
-        <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white">VocalVerse Dashboard</h1>
+        <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white animate-fade-in">VocalVerse Dashboard</h1>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
         <div className="w-full max-w-5xl mx-auto">

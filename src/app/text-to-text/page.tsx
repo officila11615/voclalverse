@@ -26,11 +26,12 @@ const initialMessages: Message[] = [
 ];
 
 function NeuralThreadsBackground() {
-  const [nodes, setNodes] = useState([]);
-  const [threads, setThreads] = useState([]);
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [threads, setThreads] = useState<any[]>([]);
 
   useEffect(() => {
     const generateNetwork = () => {
+      if (typeof window === 'undefined') return;
       const isMobile = window.innerWidth < 768;
       const numNodes = isMobile ? 5 : 8;
       const newNodes = Array.from({ length: numNodes }).map((_, i) => ({
@@ -40,7 +41,7 @@ function NeuralThreadsBackground() {
         size: Math.random() * 8 + 6,
       }));
 
-      const newThreads = [];
+      const newThreads: any[] = [];
       for (let i = 0; i < newNodes.length; i++) {
         const connections = Math.floor(Math.random() * 2) + 1;
         for (let j = 0; j < connections; j++) {
@@ -190,7 +191,7 @@ export default function TextToTextPage() {
                 <span className="sr-only">Back to Dashboard</span>
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
+            <h1 className="text-2xl font-bold font-headline tracking-wider text-white animate-fade-in">Text to Text</h1>
           </div>
           <TooltipProvider>
             <div className="flex items-center space-x-2">

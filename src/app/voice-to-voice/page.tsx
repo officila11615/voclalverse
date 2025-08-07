@@ -300,7 +300,7 @@ export default function VocalVersePage() {
              <ArrowLeft className="w-6 h-6" />
            </Button>
          </Link>
-         <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1">Voice to Voice</h1>
+         <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1 animate-fade-in">Voice to Voice</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
           {assistantState === AssistantState.Error && <ErrorIndicator />}
@@ -317,5 +317,3 @@ export default function VocalVersePage() {
     </div>
   );
 }
-
-    
