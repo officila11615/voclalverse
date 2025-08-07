@@ -144,13 +144,13 @@ export default function VocalVersePage() {
       recognitionRef.current.lang = 'en-US';
 
       recognitionRef.current.onstart = () => {
-        if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
-          window.speechSynthesis.cancel();
-        }
         playSound('start');
       };
 
       recognitionRef.current.onresult = (event: any) => {
+        if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
         playSound('confirmation');
         const transcript = event.results[0][0].transcript;
         handleSubmit(transcript);
