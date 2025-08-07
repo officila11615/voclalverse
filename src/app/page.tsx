@@ -155,7 +155,7 @@ export default function VocalVersePage() {
           setMicError(true);
           handleError("Microphone permission denied. Please grant access and refresh the page.", event, true);
         } else if (event.error === 'no-speech') {
-           startRecording();
+           // Do not restart here, onend will handle it.
         } else {
            handleError(`Speech recognition error: ${event.error}`, event, true);
         }
@@ -165,9 +165,11 @@ export default function VocalVersePage() {
       
       recognitionRef.current.onend = () => {
         setIsRecording(false);
-        if (!isLoading) {
+        // Only restart if not loading and not in an error state
+        if (!isLoading && !micError) {
           playSound('end');
-          startRecording();
+          // A brief timeout can prevent race conditions on some browsers.
+          setTimeout(() => startRecording(), 50);
         }
       };
       
@@ -184,6 +186,8 @@ export default function VocalVersePage() {
 
     return () => {
       if (recognitionRef.current) {
+        // Prevent onend from running when component unmounts
+        recognitionRef.current.onend = null;
         recognitionRef.current.stop();
       }
       if (typeof window !== 'undefined' && window.speechSynthesis) {
