@@ -59,6 +59,7 @@ function NeuralThreadsBackground() {
     };
 
     generateNetwork();
+    // No need to regenerate on resize for this example, but you could add a listener here.
   }, []);
 
   return (
@@ -72,9 +73,10 @@ function NeuralThreadsBackground() {
         </defs>
         {threads.map(thread => {
           const { source, target } = thread;
+          // Add some randomness to the curve control points
           const controlX = (source.x + target.x) / 2 + (Math.random() - 0.5) * 30;
           const controlY = (source.y + target.y) / 2 + (Math.random() - 0.5) * 30;
-          const animationDuration = Math.random() * 10 + 10;
+          const animationDuration = Math.random() * 10 + 10; // Random duration between 10s and 20s
           
           return (
             <path
@@ -110,6 +112,7 @@ export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnimationEnabled, setIsAnimationEnabled] = useState(true);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -177,8 +180,8 @@ export default function TextToTextPage() {
 
   return (
     <div className="flex flex-col h-screen bg-transparent text-foreground font-sans overflow-hidden">
-      <NeuralThreadsBackground />
-      <div className="relative z-10 flex flex-col h-full bg-black/40 backdrop-blur-sm">
+      {isAnimationEnabled && <NeuralThreadsBackground />}
+      <div className={cn("relative z-10 flex flex-col h-full", !isAnimationEnabled && 'bg-gradient-to-br from-[#1A1A2E] to-[#16213E]', isAnimationEnabled && 'bg-black/40 backdrop-blur-sm' )}>
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/" passHref>
@@ -189,6 +192,24 @@ export default function TextToTextPage() {
             </Link>
             <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
           </div>
+          <TooltipProvider>
+            <div className="flex items-center space-x-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Switch
+                    id="animation-toggle"
+                    checked={isAnimationEnabled}
+                    onCheckedChange={setIsAnimationEnabled}
+                    aria-label="Toggle background animation"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Toggle background animation</p>
+                </TooltipContent>
+              </Tooltip>
+              <Label htmlFor="animation-toggle" className="text-sm text-white/80 hidden sm:block">Animate</Label>
+            </div>
+          </TooltipProvider>
         </header>
         <main className="flex-1 flex flex-col overflow-hidden">
           <ScrollArea className="flex-1 p-4 md:p-6" ref={scrollAreaRef}>
@@ -259,5 +280,3 @@ export default function TextToTextPage() {
     </div>
   );
 }
-
-    
