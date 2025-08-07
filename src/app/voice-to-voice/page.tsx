@@ -106,8 +106,8 @@ export default function VocalVersePage() {
       oscillator.frequency.setValueAtTime(330, context.currentTime);
     } else if (type === 'confirmation') {
       oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(523.25, context.currentTime);
-      oscillator.frequency.linearRampToValueAtTime(783.99, context.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(523.25, context.currentTime); // C5
+      oscillator.frequency.linearRampToValueAtTime(783.99, context.currentTime + 0.1); // G5
     }
     
     oscillator.start(context.currentTime);
