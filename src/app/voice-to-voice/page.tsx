@@ -146,6 +146,12 @@ export default function VocalVersePage() {
       utterance.voice = preferredVoiceRef.current;
     }
 
+    utterance.onstart = () => {
+      if (isMountedRef.current) {
+        setAssistantState(AssistantState.Speaking);
+      }
+    };
+
     utterance.onend = () => {
         if (isMountedRef.current) {
             setAssistantState(AssistantState.Idle);
@@ -184,7 +190,6 @@ export default function VocalVersePage() {
     const lowerCaseText = text.toLowerCase().trim();
     const repeatCommands = ["repeat", "say that again", "what was that"];
     if (repeatCommands.includes(lowerCaseText) && lastResponse) {
-        setAssistantState(AssistantState.Speaking);
         speak(lastResponse);
         return;
     }
@@ -193,13 +198,11 @@ export default function VocalVersePage() {
       const intentResult = await getOpenRouterResponse({ transcription: text });
       const responseText = intentResult.response;
       setLastResponse(responseText);
-      setAssistantState(AssistantState.Speaking);
       speak(responseText);
     } catch (error) {
       console.error('Failed to get response. Please try again.', error);
       const errorMessage = 'Sorry, I had trouble getting a response. Please try again.';
       setLastResponse(errorMessage);
-      setAssistantState(AssistantState.Speaking);
       speak(errorMessage);
     }
   }, [stopRecognition, lastResponse, speak]);
@@ -217,9 +220,12 @@ export default function VocalVersePage() {
     }
     
     wasSpeakingWhenListeningStarted.current = window.speechSynthesis.speaking;
+    if (wasSpeakingWhenListeningStarted.current) {
+        window.speechSynthesis.cancel();
+    }
 
-    if (!wasSpeakingWhenListeningStarted.current) {
-        if(isMountedRef.current) setAssistantState(AssistantState.Listening);
+    if(isMountedRef.current) {
+        setAssistantState(AssistantState.Listening);
     }
 
     const recognition = new SpeechRecognition();
@@ -229,9 +235,7 @@ export default function VocalVersePage() {
 
     recognition.onstart = () => {
         if (!isMountedRef.current) return;
-        if (!wasSpeakingWhenListeningStarted.current) {
-          playSound('start');
-        }
+        playSound('start');
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -243,11 +247,7 @@ export default function VocalVersePage() {
             .join('').trim();
         
         if (transcript) {
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-            }
             playSound('confirmation');
-            // This component is now responsible for submission
             handleSubmit(transcript);
         }
     };
@@ -258,23 +258,17 @@ export default function VocalVersePage() {
             setAssistantState(AssistantState.Error);
             const errorMessage = "Microphone permission denied. Please grant access in your browser settings and refresh the page.";
             setLastResponse(errorMessage);
-            setAssistantState(AssistantState.Speaking);
-            speak(errorMessage); // Audibly inform the user
+            speak(errorMessage);
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error(`Speech recognition error: ${event.error}`, event);
-            // Attempt to recover by going idle
             setAssistantState(AssistantState.Idle);
         }
     };
     
     recognition.onend = () => {
       recognitionRef.current = null;
-      // Only transition to Idle if we were actively listening. 
-      // If we're thinking or speaking, another state transition is already in progress.
       if (isMountedRef.current && assistantState === AssistantState.Listening) {
-        if (!wasSpeakingWhenListeningStarted.current) {
-          playSound('end');
-        }
+        playSound('end');
         setAssistantState(AssistantState.Idle);
       }
     };
@@ -285,7 +279,7 @@ export default function VocalVersePage() {
     } catch (e) {
       console.error("Could not start recognition", e);
       recognitionRef.current = null;
-      if (isMountedRef.current) setAssistantState(AssistantState.Idle); // Recover on start failure
+      if (isMountedRef.current) setAssistantState(AssistantState.Idle);
     }
   }, [assistantState, playSound, handleSubmit, speak]);
 
@@ -347,11 +341,9 @@ export default function VocalVersePage() {
 
   // Effect to manage starting recognition based on state
   useEffect(() => {
-    // We want to listen when idle, and also when the assistant is speaking (for barge-in)
-    if (assistantState === AssistantState.Idle || assistantState === AssistantState.Speaking) {
+    if (assistantState === AssistantState.Idle) {
       startRecognition();
-    } else {
-       // If we are thinking or there's an error, make sure recognition is stopped.
+    } else if (assistantState === AssistantState.Thinking) {
        stopRecognition();
     }
   }, [assistantState, startRecognition, stopRecognition]);
@@ -370,11 +362,11 @@ export default function VocalVersePage() {
 
   // Handle click on the orb to interrupt and reset
   const handleOrbClick = () => {
-    if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel(); // Interrupt speech
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
     }
-    stopRecognition(); // Stop any active listening
-    setAssistantState(AssistantState.Idle); // Return to idle, which will re-trigger listening via useEffect
+    stopRecognition();
+    setAssistantState(AssistantState.Idle);
   }
 
   return (
@@ -398,4 +390,3 @@ export default function VocalVersePage() {
   );
 }
 
-    
