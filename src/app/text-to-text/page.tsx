@@ -2,8 +2,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
@@ -29,7 +30,7 @@ export default function TextToTextPage() {
       </header>
       <main className="flex-1 flex flex-col overflow-hidden">
         <ScrollArea className="flex-1 p-4 md:p-6">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
             {fakeMessages.map((message) => (
               <div
                 key={message.id}
@@ -53,6 +54,21 @@ export default function TextToTextPage() {
           </div>
         </ScrollArea>
       </main>
+      <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-2">
+            <Input 
+              type="text" 
+              placeholder="Type your message..." 
+              className="flex-1 bg-background/50 border-white/20 focus:ring-primary/50 focus:ring-2"
+            />
+            <Button size="icon" className="bg-primary hover:bg-primary/80">
+              <Send className="w-5 h-5" />
+              <span className="sr-only">Send</span>
+            </Button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
