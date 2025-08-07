@@ -25,32 +25,7 @@ const initialMessages: Message[] = [
 ];
 
 const AnimatedBackground = () => {
-  const [particles, setParticles] = useState<React.ReactNode[]>([]);
-
-  useEffect(() => {
-    const generateParticles = () => {
-      const particleArray = [];
-      const particleCount = 50; 
-      const colors = ['#6366F1', '#A21CAF', '#38BDF8', '#EAB308'];
-
-      for (let i = 0; i < particleCount; i++) {
-        const size = Math.random() * 4 + 1; // size between 1px and 5px
-        const style: React.CSSProperties = {
-          left: `${Math.random() * 100}vw`,
-          width: `${size}px`,
-          height: `${size}px`,
-          backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-          animationDuration: `${Math.random() * 20 + 15}s`, // duration between 15s and 35s
-          animationDelay: `${Math.random() * 10}s`,
-        };
-        particleArray.push(<div key={i} className="particle" style={style} />);
-      }
-      setParticles(particleArray);
-    };
-    generateParticles();
-  }, []);
-
-  return <div className="particle-container">{particles}</div>;
+  return <div className="bg-crystal-aurora" />;
 };
 
 export default function TextToTextPage() {

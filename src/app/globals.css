@@ -140,37 +140,40 @@
   .animate-waveform-glow {
     animation: waveform-glow 1.5s infinite ease-in-out;
   }
+}
 
-  @keyframes float {
-    0% {
-      transform: translateY(0) translateX(0);
-      opacity: 0.7;
-    }
-    50% {
-      opacity: 0.3;
-    }
-    100% {
-      transform: translateY(-100vh) translateX(20vw);
-      opacity: 0;
-    }
-  }
+@keyframes moveAuroraBand {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
-  .particle-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: #0d1b2a;
-    overflow: hidden;
-    z-index: 0;
-  }
+.bg-crystal-aurora {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none; /* completely non-blocking */
+  background: linear-gradient(120deg,
+    #070a15 0%,
+    #131a33 35%,
+    #184d89 60%,
+    #252342 75%,
+    #5f63a1 100%
+  );
+  background-size: 200% 200%;
+  animation: moveAuroraBand 26s linear infinite;
+}
 
-  .particle {
-    position: absolute;
-    border-radius: 50%;
-    animation: float infinite ease-in-out;
-    bottom: -20px;
-    opacity: 0;
-  }
+.bg-crystal-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, transparent 20%, #3d7ff2 40%, transparent 60%);
+  opacity: 0.08;
+  background-size: 300% 300%;
+  animation: moveAuroraBand 34s linear infinite reverse;
+  pointer-events: none;
 }
