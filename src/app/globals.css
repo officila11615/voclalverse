@@ -154,6 +154,6 @@
   }
 
   .animate-gradient {
-    animation: animated-gradient 15s ease infinite;
+    animation: animated-gradient 30s ease infinite;
   }
 }
