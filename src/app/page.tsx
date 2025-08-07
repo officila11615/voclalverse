@@ -6,12 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
 
 const RecordingIndicator = () => (
-  <div className="flex items-center justify-center space-x-2 h-16">
-    <span className="w-2 h-8 bg-primary rounded-full animate-waveform" style={{ animationDelay: '0ms' }} />
-    <span className="w-2 h-12 bg-primary rounded-full animate-waveform" style={{ animationDelay: '200ms' }} />
-    <span className="w-2 h-6 bg-primary rounded-full animate-waveform" style={{ animationDelay: '400ms' }} />
-    <span className="w-2 h-12 bg-primary rounded-full animate-waveform" style={{ animationDelay: '600ms' }} />
-    <span className="w-2 h-8 bg-primary rounded-full animate-waveform" style={{ animationDelay: '800ms' }} />
+  <div className="flex items-center justify-center space-x-2 h-24">
+    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '0ms' }} />
+    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '200ms' }} />
+    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '400ms' }} />
+    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '600ms' }} />
+    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '800ms' }} />
   </div>
 );
 
@@ -165,16 +165,16 @@ export default function VocalVersePage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-       <header className="p-4 border-b shadow-sm">
-         <h1 className="text-2xl font-bold text-center font-headline">VocalVerse</h1>
+       <header className="p-4 border-b border-white/10 shadow-lg">
+         <h1 className="text-3xl font-bold text-center font-headline tracking-wider">VocalVerse</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-          {isLoading && <Loader2 className="w-16 h-16 animate-spin" />}
+          {isLoading && <Loader2 className="w-20 h-20 animate-spin text-primary" />}
           {isRecording && !isLoading && <RecordingIndicator />}
        </main>
-       <footer className="p-4 border-t bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center justify-center h-32">
-           <p className="text-muted-foreground text-center">
+       <footer className="p-4 border-t border-white/10 bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex items-center justify-center h-16">
+           <p className="text-muted-foreground text-center text-lg">
              {isLoading ? "Thinking..." : isRecording ? "Listening..." : "Waiting to listen..."}
            </p>
         </div>
