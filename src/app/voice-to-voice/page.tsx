@@ -77,7 +77,6 @@ export default function VocalVersePage() {
   const isMountedRef = useRef(false);
   const wasSpeakingWhenListeningStarted = useRef(false);
   const preferredVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
-
   const recognitionStopTimer = useRef<NodeJS.Timeout | null>(null);
 
   const playSound = useCallback((type: 'start' | 'end' | 'confirmation') => {
@@ -128,14 +127,42 @@ export default function VocalVersePage() {
         recognitionRef.current = null;
     }
   }, []);
-  
-  const speak = useCallback((text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-        setAssistantState(AssistantState.Idle);
+
+  const handleSubmit = useCallback(async (text: string) => {
+    if (!text) {
+      if (isMountedRef.current) setAssistantState(AssistantState.Idle);
+      return;
+    };
+    
+    stopRecognition();
+    if (isMountedRef.current) setAssistantState(AssistantState.Thinking);
+    
+    const lowerCaseText = text.toLowerCase().trim();
+    const repeatCommands = ["repeat", "say that again", "what was that"];
+    if (repeatCommands.includes(lowerCaseText) && lastResponse) {
+        // speak() will be called via useEffect watching assistantState
+        if (isMountedRef.current) setAssistantState(AssistantState.Speaking);
         return;
     }
     
-    setAssistantState(AssistantState.Speaking);
+    try {
+      const intentResult = await getOpenRouterResponse({ transcription: text });
+      const responseText = intentResult.response;
+      setLastResponse(responseText);
+    } catch (error) {
+      console.error('Failed to get response. Please try again.', error);
+      const errorMessage = 'Sorry, I had trouble getting a response. Please try again.';
+      setLastResponse(errorMessage);
+    } finally {
+        if(isMountedRef.current) setAssistantState(AssistantState.Speaking);
+    }
+  }, [stopRecognition, lastResponse]);
+  
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis || !text) {
+        if (isMountedRef.current) setAssistantState(AssistantState.Idle);
+        return;
+    }
 
     window.speechSynthesis.cancel();
     
@@ -168,57 +195,27 @@ export default function VocalVersePage() {
     };
 
     window.speechSynthesis.speak(utterance);
-    // startRecognition() is called from within speak to allow for barge-in
-    // but we can't call it directly due to dependency cycle.
-    // It's called from an effect that watches the state.
   }, [toast]);
   
-  const handleSubmit = useCallback(async (text: string) => {
-    if (!text) {
-      setAssistantState(AssistantState.Idle);
-      return;
-    };
-
-    const lowerCaseText = text.toLowerCase().trim();
-    const repeatCommands = ["repeat", "say that again", "what was that"];
-    if (repeatCommands.includes(lowerCaseText) && lastResponse) {
-        speak(lastResponse);
-        return;
-    }
-    
-    stopRecognition();
-    setAssistantState(AssistantState.Thinking);
-    
-    try {
-      const intentResult = await getOpenRouterResponse({ transcription: text });
-      const responseText = intentResult.response;
-      setLastResponse(responseText);
-      speak(responseText);
-
-    } catch (error) {
-      console.error('Failed to get response. Please try again.', error);
-      const errorMessage = 'Sorry, I had trouble getting a response. Please try again.';
-      setLastResponse(errorMessage);
-      speak(errorMessage);
-    }
-  }, [stopRecognition, speak, lastResponse]);
-
   const startRecognition = useCallback(() => {
-    if (assistantState === AssistantState.Thinking || assistantState === AssistantState.Error) {
+    if (recognitionRef.current || assistantState === AssistantState.Thinking || assistantState === AssistantState.Error) {
       return;
     }
-    stopRecognition();
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         setAssistantState(AssistantState.Error);
         return;
     }
-
+    
     wasSpeakingWhenListeningStarted.current = window.speechSynthesis.speaking;
 
+    if (!wasSpeakingWhenListeningStarted.current) {
+        setAssistantState(AssistantState.Listening);
+    }
+
     const recognition = new SpeechRecognition();
-    recognition.continuous = !wasSpeakingWhenListeningStarted.current;
+    recognition.continuous = false; // Process single utterances
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 
@@ -227,11 +224,11 @@ export default function VocalVersePage() {
         if (!wasSpeakingWhenListeningStarted.current) {
           playSound('start');
         }
-        setAssistantState(AssistantState.Listening);
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
         if (!isMountedRef.current) return;
+        
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
@@ -240,6 +237,7 @@ export default function VocalVersePage() {
         }
 
         const transcript = finalTranscript.trim();
+        
         if (transcript) {
             if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
@@ -255,24 +253,19 @@ export default function VocalVersePage() {
             setAssistantState(AssistantState.Error);
             const errorMessage = "Microphone permission denied. Please grant access in your browser settings and refresh the page.";
             setLastResponse(errorMessage);
-            speak(errorMessage);
+            setAssistantState(AssistantState.Speaking);
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error(`Speech recognition error: ${event.error}`, event);
         }
     };
     
     recognition.onend = () => {
+      recognitionRef.current = null;
       if (isMountedRef.current && assistantState === AssistantState.Listening) {
         if (!wasSpeakingWhenListeningStarted.current) {
           playSound('end');
         }
-        if (assistantState === AssistantState.Listening) {
-            recognitionStopTimer.current = setTimeout(() => {
-              if (isMountedRef.current && assistantState === AssistantState.Listening) {
-                  setAssistantState(AssistantState.Idle);
-              }
-            }, 100);
-        }
+        setAssistantState(AssistantState.Idle);
       }
     };
 
@@ -281,46 +274,11 @@ export default function VocalVersePage() {
       recognition.start();
     } catch (e) {
       console.error("Could not start recognition", e);
-      // It might fail if another recognition is already running.
-      // We can try to recover by stopping and starting again.
-      stopRecognition();
-      setTimeout(() => startRecognition(), 100);
+      // Clean up if start fails
+      recognitionRef.current = null;
     }
-  }, [assistantState, stopRecognition, playSound, handleSubmit, speak]);
+  }, [assistantState, playSound, handleSubmit]);
 
-  useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        const voiceNamesToTry = [
-            "Google US English",
-            "Samantha",
-            "Microsoft Zira - English (United States)",
-            "Alex",
-        ];
-        let foundVoice: SpeechSynthesisVoice | null = null;
-        for (const name of voiceNamesToTry) {
-            foundVoice = voices.find(voice => voice.name === name && voice.lang.startsWith('en')) || null;
-            if (foundVoice) break;
-        }
-        
-        if (!foundVoice) {
-            foundVoice = voices.find(voice => voice.lang === "en-US" && voice.default) || null;
-        }
-        
-        if (!foundVoice) {
-            foundVoice = voices.find(voice => voice.lang === "en-US") || null;
-        }
-        
-        preferredVoiceRef.current = foundVoice || voices[0] || null;
-      }
-    };
-
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-        loadVoices();
-    }
-  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -344,6 +302,29 @@ export default function VocalVersePage() {
       return;
     }
 
+    // Set up voices
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const voiceNamesToTry = [
+            "Google US English", "Samantha", "Microsoft Zira - English (United States)", "Alex",
+        ];
+        let foundVoice: SpeechSynthesisVoice | null = null;
+        for (const name of voiceNamesToTry) {
+            foundVoice = voices.find(voice => voice.name === name && voice.lang.startsWith('en')) || null;
+            if (foundVoice) break;
+        }
+        if (!foundVoice) foundVoice = voices.find(voice => voice.lang === "en-US" && voice.default) || null;
+        if (!foundVoice) foundVoice = voices.find(voice => voice.lang === "en-US") || null;
+        preferredVoiceRef.current = foundVoice || voices[0] || null;
+      }
+    };
+
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+    }
+
     return () => {
       isMountedRef.current = false;
       stopRecognition();
@@ -357,18 +338,21 @@ export default function VocalVersePage() {
   }, [toast, stopRecognition]); 
 
   useEffect(() => {
+    // This effect handles state transitions to Listening or Speaking
     if (assistantState === AssistantState.Idle || assistantState === AssistantState.Speaking) {
-      const canStart = assistantState === AssistantState.Idle || (assistantState === AssistantState.Speaking && !wasSpeakingWhenListeningStarted.current);
-       if (canStart) {
-        const transitionTimeout = setTimeout(() => {
-          if (isMountedRef.current) {
-            startRecognition();
-          }
-        }, 100);
-        return () => clearTimeout(transitionTimeout);
-      }
+      startRecognition();
+    } else if (assistantState === AssistantState.Thinking) {
+      stopRecognition();
     }
-  }, [assistantState, startRecognition]);
+  }, [assistantState, startRecognition, stopRecognition]);
+
+  useEffect(() => {
+    // This effect triggers speech when the state becomes Speaking
+    if (assistantState === AssistantState.Speaking && lastResponse) {
+      speak(lastResponse);
+    }
+  }, [assistantState, lastResponse, speak]);
+
 
   const getStatusText = () => {
     switch(assistantState) {
@@ -377,8 +361,16 @@ export default function VocalVersePage() {
         case AssistantState.Speaking: return "Speaking...";
         case AssistantState.Error: return "Microphone Error. Please grant access.";
         case AssistantState.Idle:
-        default: return "Ready. Waiting for you to speak.";
+        default: return "Ready. Tap the orb or start speaking.";
     }
+  }
+
+  const handleOrbClick = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel(); // Interrupt speech
+    }
+    stopRecognition();
+    setAssistantState(AssistantState.Idle); // Return to idle to re-trigger listening
   }
 
   return (
@@ -387,7 +379,9 @@ export default function VocalVersePage() {
          <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1 animate-fade-in">Voice to Voice</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-          <VocalOrb state={assistantState} />
+          <button onClick={handleOrbClick} className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full">
+            <VocalOrb state={assistantState} />
+          </button>
        </main>
        <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-center h-16">
@@ -399,3 +393,5 @@ export default function VocalVersePage() {
     </div>
   );
 }
+
+    
