@@ -22,6 +22,43 @@ export default function VocalVersePage() {
   const { toast } = useToast();
   const recognitionRef = useRef<any>(null);
 
+  const speak = (text: string, onEndCallback?: () => void) => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.onend = () => {
+        setIsLoading(false);
+        onEndCallback?.();
+      };
+      utterance.onerror = (event) => {
+        console.error('SpeechSynthesis Error:', event);
+        handleError('There was an error during speech playback.');
+        setIsLoading(false);
+        onEndCallback?.();
+      };
+      speechSynthesis.speak(utterance);
+    } else {
+      setIsLoading(false);
+      onEndCallback?.();
+    }
+  };
+
+  const handleError = (message: string, error?: any, speakMessage = false) => {
+    if (error) console.error(message, error);
+    
+    if (speakMessage) {
+      speak(message, () => setIsLoading(false));
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'An error occurred',
+        description: message,
+      });
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -36,8 +73,20 @@ export default function VocalVersePage() {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        handleError(`Speech recognition error: ${event.error}`);
+        let errorMessage = `Speech recognition error: ${event.error}`;
+        let speakableMessage = "An unexpected error occurred. Please try again."
+
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          speakableMessage = "I can't access the microphone. Please grant permission and try again.";
+          errorMessage = "Microphone permission denied.";
+        } else if (event.error === 'no-speech') {
+          speakableMessage = "I didn't hear anything. Please try again.";
+          errorMessage = "No speech was detected.";
+        }
+        
+        handleError(errorMessage, event, true);
         setIsRecording(false);
+        setIsLoading(false);
       };
       
       recognitionRef.current.onend = () => {
@@ -61,32 +110,6 @@ export default function VocalVersePage() {
     };
   }, [toast]);
 
-  const speak = (text: string) => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.onend = () => setIsLoading(false);
-      utterance.onerror = () => {
-        handleError('There was an error during speech playback.');
-        setIsLoading(false);
-      };
-      speechSynthesis.speak(utterance);
-    } else {
-        setIsLoading(false);
-    }
-  };
-
-  const handleError = (message: string, error?: any) => {
-    if (error) console.error(message, error);
-    toast({
-      variant: 'destructive',
-      title: 'An error occurred',
-      description: message,
-    });
-    setIsLoading(false);
-  };
-
   const handleSubmit = async (text: string) => {
     if (!text || isLoading) return;
 
@@ -98,7 +121,7 @@ export default function VocalVersePage() {
       speak(responseText);
 
     } catch (error) {
-      handleError('Failed to get response. Please try again.', error);
+      handleError('Failed to get response. Please try again.', error, true);
     }
   };
 
