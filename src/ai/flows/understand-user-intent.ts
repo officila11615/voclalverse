@@ -19,7 +19,7 @@ export type UnderstandUserIntentInput = z.infer<typeof UnderstandUserIntentInput
 const UnderstandUserIntentOutputSchema = z.object({
   intent: z.string().describe('The identified intent of the user, such as scheduling an event, asking a question, or requesting information.'),
   action: z.string().optional().describe('The action to be taken based on the identified intent.'),
-  parameters: z.record(z.any()).optional().describe('Any parameters or details extracted from the user input that are relevant to fulfilling the intent.'),
+  parameters: z.record(z.string(), z.unknown()).optional().describe('Any parameters or details extracted from the user input that are relevant to fulfilling the intent.'),
 });
 export type UnderstandUserIntentOutput = z.infer<typeof UnderstandUserIntentOutputSchema>;
 
