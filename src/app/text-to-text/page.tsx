@@ -94,9 +94,7 @@ export default function TextToTextPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden">
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1A1A2E] to-[#16213E]">
-        {/* Animated background elements will go here */}
-      </div>
+       <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1A1A2E] to-[#16213E] bg-[length:200%_200%] animate-gradient"></div>
 
       <div className="relative z-10 flex flex-col h-full">
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center gap-4 bg-black/20 backdrop-blur-sm">

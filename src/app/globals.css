@@ -140,4 +140,20 @@
   .animate-waveform-glow {
     animation: waveform-glow 1.5s infinite ease-in-out;
   }
+
+  @keyframes animated-gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient {
+    animation: animated-gradient 15s ease infinite;
+  }
 }
