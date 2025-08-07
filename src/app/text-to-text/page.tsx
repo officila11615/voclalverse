@@ -93,80 +93,86 @@ export default function TextToTextPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground font-sans">
-      <header className="p-4 border-b border-white/10 shadow-lg flex items-center gap-4">
-        <Link href="/" passHref>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-6 h-6" />
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
-      </header>
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 p-4 md:p-6" ref={scrollAreaRef}>
-          <div className="flex flex-col gap-4 max-w-2xl mx-auto">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  'flex w-full items-end gap-3 animate-fade-in',
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                )}
-              >
-                 {message.role === 'assistant' && (
-                    <Avatar className="w-8 h-8 bg-primary/20 text-primary">
-                        <AvatarFallback>AI</AvatarFallback>
-                    </Avatar>
-                 )}
+    <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground font-sans overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        {/* Animated background elements will go here */}
+      </div>
+
+      <div className="relative z-10 flex flex-col h-full">
+        <header className="p-4 border-b border-white/10 shadow-lg flex items-center gap-4 bg-black/20 backdrop-blur-sm">
+          <Link href="/" passHref>
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-6 h-6" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
+        </header>
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <ScrollArea className="flex-1 p-4 md:p-6" ref={scrollAreaRef}>
+            <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+              {messages.map((message) => (
                 <div
+                  key={message.id}
                   className={cn(
-                    'max-w-md rounded-lg p-3 shadow-lg',
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-br-none'
-                      : 'bg-background/50 text-foreground rounded-bl-none'
+                    'flex w-full items-end gap-3 animate-fade-in',
+                    message.role === 'user' ? 'justify-end' : 'justify-start'
                   )}
                 >
-                  <p className="text-sm font-body whitespace-pre-wrap">{message.content}</p>
+                  {message.role === 'assistant' && (
+                      <Avatar className="w-8 h-8 bg-primary/20 text-primary shadow-lg">
+                          <AvatarFallback>AI</AvatarFallback>
+                      </Avatar>
+                  )}
+                  <div
+                    className={cn(
+                      'max-w-md rounded-lg p-3 shadow-xl',
+                      message.role === 'user'
+                        ? 'bg-primary text-primary-foreground rounded-br-none'
+                        : 'bg-background/50 backdrop-blur-sm text-foreground rounded-bl-none'
+                    )}
+                  >
+                    <p className="text-sm font-body whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                  {message.role === 'user' && (
+                      <Avatar className="w-8 h-8 shadow-lg">
+                          <AvatarFallback>U</AvatarFallback>
+                      </Avatar>
+                  )}
                 </div>
-                 {message.role === 'user' && (
-                    <Avatar className="w-8 h-8">
-                        <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
-                 )}
-              </div>
-            ))}
-             {isLoading && (
-              <div className="flex justify-start items-end gap-3 animate-fade-in">
-                <Avatar className="w-8 h-8 bg-primary/20 text-primary">
-                  <AvatarFallback>AI</AvatarFallback>
-                </Avatar>
-                <div className="max-w-md rounded-lg p-3 shadow-md bg-background/50 text-foreground rounded-bl-none">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+              ))}
+              {isLoading && (
+                <div className="flex justify-start items-end gap-3 animate-fade-in">
+                  <Avatar className="w-8 h-8 bg-primary/20 text-primary">
+                    <AvatarFallback>AI</AvatarFallback>
+                  </Avatar>
+                  <div className="max-w-md rounded-lg p-3 shadow-md bg-background/50 text-foreground rounded-bl-none">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </ScrollArea>
+        </main>
+        <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center gap-2">
+              <Input 
+                type="text" 
+                placeholder="Type your message..." 
+                className="flex-1 bg-background/50 border-white/20 focus:ring-primary/50 focus:ring-2 font-body"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
+              />
+              <Button size="icon" className="bg-primary hover:bg-primary/80" onClick={handleSendMessage} disabled={isLoading}>
+                <Send className="w-5 h-5" />
+                <span className="sr-only">Send Message</span>
+              </Button>
+            </div>
           </div>
-        </ScrollArea>
-      </main>
-      <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Input 
-              type="text" 
-              placeholder="Type your message..." 
-              className="flex-1 bg-background/50 border-white/20 focus:ring-primary/50 focus:ring-2 font-body"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isLoading}
-            />
-            <Button size="icon" className="bg-primary hover:bg-primary/80" onClick={handleSendMessage} disabled={isLoading}>
-              <Send className="w-5 h-5" />
-              <span className="sr-only">Send Message</span>
-            </Button>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }
