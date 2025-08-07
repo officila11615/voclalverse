@@ -122,7 +122,7 @@ export default function TextToTextPage() {
                       : 'bg-background/50 text-foreground rounded-bl-none'
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm font-body whitespace-pre-wrap">{message.content}</p>
                 </div>
                  {message.role === 'user' && (
                     <Avatar className="w-8 h-8">
@@ -150,7 +150,7 @@ export default function TextToTextPage() {
             <Input 
               type="text" 
               placeholder="Type your message..." 
-              className="flex-1 bg-background/50 border-white/20 focus:ring-primary/50 focus:ring-2"
+              className="flex-1 bg-background/50 border-white/20 focus:ring-primary/50 focus:ring-2 font-body"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
