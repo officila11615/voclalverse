@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Loader2, Mic } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
-import { cn } from '@/lib/utils';
 
 const RecordingIndicator = () => (
   <div className="flex items-center justify-center space-x-2 h-16">
@@ -140,11 +139,6 @@ export default function VocalVersePage() {
       handleError('Failed to get response. Please try again.', error, true);
     }
   };
-  
-  const getMicIcon = () => {
-    if (isLoading) return <Loader2 className="w-16 h-16 animate-spin" />;
-    return <Mic className="w-16 h-16" />;
-  }
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
@@ -152,18 +146,8 @@ export default function VocalVersePage() {
          <h1 className="text-2xl font-bold text-center font-headline">VocalVerse</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-          {isRecording && <RecordingIndicator />}
-          {!isRecording && (
-             <div
-              className={cn(
-                  'h-32 w-32 rounded-full flex items-center justify-center text-white transition-all duration-300 ease-in-out',
-                  'bg-gradient-to-br from-primary to-accent',
-                  'shadow-lg'
-              )}
-            >
-              {getMicIcon()}
-            </div>
-          )}
+          {isLoading && <Loader2 className="w-16 h-16 animate-spin" />}
+          {isRecording && !isLoading && <RecordingIndicator />}
        </main>
        <footer className="p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-center h-32">
