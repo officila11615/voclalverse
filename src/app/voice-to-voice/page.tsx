@@ -223,7 +223,10 @@ export default function VocalVersePage() {
     try {
       const intentResult = await getOpenRouterResponse({ transcription: text });
       const responseText = intentResult.response;
-      speak(responseText);
+      
+      setTimeout(() => {
+        speak(responseText);
+      }, 2500);
 
     } catch (error) {
       handleError('Failed to get response. Please try again.', error, true);
