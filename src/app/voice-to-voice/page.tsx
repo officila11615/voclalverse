@@ -75,6 +75,7 @@ export default function VocalVersePage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const isMountedRef = useRef(false);
   const wasSpeakingWhenListeningStarted = useRef(false);
+  const preferredVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
   // This ref helps prevent race conditions by tracking if a recognition restart is pending
   const recognitionStopTimer = useRef<NodeJS.Timeout | null>(null);
@@ -143,21 +144,15 @@ export default function VocalVersePage() {
       const intentResult = await getOpenRouterResponse({ transcription: text });
       const responseText = intentResult.response;
       
-      setTimeout(() => {
-          // This has to be in a timeout to allow `speak` to be defined
-          // This is a temporary workaround.
-          if (typeof speak === 'function') {
-            speak(responseText);
-          }
-      }, 500);
+      // The `speak` function is defined later, so we rely on it being in scope
+      // This is safe because `handleSubmit` is only called after component mount.
+      speak(responseText);
 
     } catch (error) {
       console.error('Failed to get response. Please try again.', error);
-      if (typeof speak === 'function') {
-        speak('Sorry, I had trouble getting a response. Please try again.');
-      }
+      speak('Sorry, I had trouble getting a response. Please try again.');
     }
-  }, [stopRecognition]); // Removed speak from dependencies for now
+  }, [stopRecognition]); // `speak` is not a dependency here to avoid circular refs
 
   const startRecognition = useCallback(() => {
     if (assistantState === AssistantState.Thinking || assistantState === AssistantState.Error) {
@@ -209,9 +204,7 @@ export default function VocalVersePage() {
         if (!isMountedRef.current) return;
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
             setAssistantState(AssistantState.Error);
-            if (typeof speak === 'function') {
-              speak("Microphone permission denied. Please grant access and refresh the page.");
-            }
+            speak("Microphone permission denied. Please grant access and refresh the page.");
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error(`Speech recognition error: ${event.error}`, event);
         }
@@ -223,8 +216,6 @@ export default function VocalVersePage() {
           playSound('end');
         }
 
-        // If listening ends and we were not trying to barge-in, go back to idle to restart listening loop
-        // If we WERE barging in, the utterance onend will handle the state transition.
         if (assistantState === AssistantState.Listening && !wasSpeakingWhenListeningStarted.current) {
             recognitionStopTimer.current = setTimeout(() => {
               if (isMountedRef.current) {
@@ -243,8 +234,7 @@ export default function VocalVersePage() {
       stopRecognition();
       setTimeout(() => startRecognition(), 250);
     }
-  }, [assistantState, stopRecognition, playSound, handleSubmit]); // Removed speak from dependencies
-
+  }, [assistantState, stopRecognition, playSound, handleSubmit]); // `speak` is not a dependency here
 
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
@@ -259,10 +249,15 @@ export default function VocalVersePage() {
     
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    // Use the preferred voice if available
+    if (preferredVoiceRef.current) {
+      utterance.voice = preferredVoiceRef.current;
+    }
 
     utterance.onend = () => {
         if (isMountedRef.current) {
-            // After speaking, go idle, which will trigger listening.
             setAssistantState(AssistantState.Idle);
         }
     };
@@ -282,17 +277,46 @@ export default function VocalVersePage() {
     };
 
     window.speechSynthesis.speak(utterance);
-    // Start listening for barge-in
     startRecognition();
   }, [stopRecognition, toast, startRecognition]);
 
-  // Now that speak is defined, we can safely call it inside handleSubmit
-  // We use a useEffect to link them to avoid circular dependencies in useCallback
+  // Effect to load and select the preferred voice
   useEffect(() => {
-    // This is a bit of a hack to avoid direct circular dependencies
-    // in useCallback. We're essentially updating the callback reference
-    // whenever `speak` changes.
-  }, [speak]);
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const voiceNamesToTry = [
+            "Google US English", // High-quality Google voice
+            "Samantha", // Common on macOS
+            "Microsoft Zira - English (United States)", // Common on Windows
+            "Alex", // High-quality default on macOS
+        ];
+        let foundVoice = null;
+        for (const name of voiceNamesToTry) {
+            foundVoice = voices.find(voice => voice.name === name && voice.lang.startsWith('en'));
+            if (foundVoice) break;
+        }
+        
+        // Fallback to any default US English voice if specific ones aren't found
+        if (!foundVoice) {
+            foundVoice = voices.find(voice => voice.lang === "en-US" && voice.default);
+        }
+        
+        // Final fallback to the very first US English voice available
+        if (!foundVoice) {
+            foundVoice = voices.find(voice => voice.lang === "en-US");
+        }
+        
+        preferredVoiceRef.current = foundVoice || voices[0];
+      }
+    };
+
+    // Voices are loaded asynchronously
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices(); // Initial attempt
+    }
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -329,10 +353,7 @@ export default function VocalVersePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
-  // This effect manages the state transitions. When state becomes Idle, it should start listening.
   useEffect(() => {
-    // Only start recognition from Idle if we aren't already speaking.
-    // If we are speaking, the barge-in logic in `speak` will handle starting recognition.
     if (assistantState === AssistantState.Idle && isMountedRef.current) {
       const transitionTimeout = setTimeout(() => {
         startRecognition();
