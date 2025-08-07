@@ -2,9 +2,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Loader2, MicOff } from 'lucide-react';
+import { MicOff, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
+import { cn } from '@/lib/utils';
 
 // Enum for the different states of the voice assistant
 enum AssistantState {
@@ -15,24 +16,56 @@ enum AssistantState {
   Error, // An error has occurred (e.g., mic permission denied)
 }
 
-const RecordingIndicator = () => (
-  <div className="flex items-center justify-center space-x-2 h-24 animate-fade-in">
-    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '0ms' }} />
-    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '200ms' }} />
-    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '400ms' }} />
-    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '600ms' }} />
-    <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '800ms' }} />
-  </div>
-);
+const VocalOrb = ({ state }: { state: AssistantState }) => {
+  const isListening = state === AssistantState.Listening;
+  const isThinking = state === AssistantState.Thinking;
+  const isError = state === AssistantState.Error;
 
-const ErrorIndicator = () => (
-  <div className="flex flex-col items-center justify-center animate-fade-in">
-    <div className="w-48 h-48 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse-glow-red">
-       <MicOff className="w-24 h-24 text-destructive-foreground/80" />
+  return (
+    <div className="relative w-48 h-48 md:w-64 md:h-64 flex items-center justify-center animate-fade-in">
+      {/* Outer glow and pulse animation */}
+      <div
+        className={cn(
+          "absolute w-full h-full rounded-full transition-all duration-500",
+          isListening && "animate-orb-pulse",
+          isError && "animate-orb-error-glow",
+          !isListening && !isError && "bg-primary/10 shadow-[0_0_30px_-5px_hsl(var(--primary)),_inset_0_0_20px_-10px_hsl(var(--primary))]"
+        )}
+        style={{
+            animationDuration: isListening ? '3s' : '2.5s'
+        }}
+      />
+      {/* Inner orb structure */}
+      <div
+        className={cn(
+          "w-[90%] h-[90%] rounded-full bg-background/50 backdrop-blur-xl border border-white/5 shadow-inner",
+          "flex items-center justify-center"
+        )}
+      >
+        <div
+          className={cn(
+            "w-[80%] h-[80%] rounded-full bg-background/50 border border-white/10 shadow-lg",
+             "flex items-center justify-center transition-all duration-300",
+             isThinking && "scale-95"
+          )}
+        >
+          {isThinking && (
+            <div className="absolute w-[120%] h-[120%] border-2 border-dashed border-primary/50 rounded-full animate-orb-spin" style={{animationDuration: '10s'}} />
+          )}
+          
+          {isError ? (
+            <MicOff className="w-16 h-16 text-destructive" />
+          ) : isThinking ? (
+            <Loader2 className="w-16 h-16 text-primary/80 animate-spin" style={{animationDuration: '1.5s'}} />
+          ) : (
+             <div className="w-16 h-16 rounded-full bg-primary/20 shadow-[0_0_15px_0px_hsl(var(--primary)/0.5)]" />
+          )}
+        </div>
+      </div>
     </div>
-    <p className="mt-6 text-xl text-destructive-foreground/90 font-medium">Microphone Unavailable</p>
-  </div>
-);
+  );
+};
+
 
 export default function VocalVersePage() {
   const [assistantState, setAssistantState] = useState<AssistantState>(AssistantState.Idle);
@@ -112,7 +145,7 @@ export default function VocalVersePage() {
     utterance.rate = 1.0;
 
     utterance.onend = () => {
-        if (isMountedRef.current && assistantState === AssistantState.Speaking) {
+        if (isMountedRef.current) {
             setAssistantState(AssistantState.Idle);
         }
     };
@@ -126,13 +159,13 @@ export default function VocalVersePage() {
                 description: 'Sorry, there was an error during speech playback.',
             });
         }
-        if (isMountedRef.current && assistantState === AssistantState.Speaking) {
+        if (isMountedRef.current) {
             setAssistantState(AssistantState.Idle);
         }
     };
 
     window.speechSynthesis.speak(utterance);
-  }, [assistantState, stopRecognition, toast]);
+  }, [stopRecognition, toast]);
 
   const handleSubmit = useCallback(async (text: string) => {
     if (!text) {
@@ -149,7 +182,7 @@ export default function VocalVersePage() {
       
       setTimeout(() => {
           speak(responseText);
-      }, 2500);
+      }, 500); // Reduced delay before speaking
 
     } catch (error) {
       console.error('Failed to get response. Please try again.', error);
@@ -296,9 +329,7 @@ export default function VocalVersePage() {
          <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1 animate-fade-in">Voice to Voice</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-          {assistantState === AssistantState.Error && <ErrorIndicator />}
-          {assistantState === AssistantState.Thinking && <Loader2 className="w-20 h-20 animate-spin text-primary animate-fade-in" />}
-          {assistantState === AssistantState.Listening && <RecordingIndicator />}
+          <VocalOrb state={assistantState} />
        </main>
        <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-center h-16">
