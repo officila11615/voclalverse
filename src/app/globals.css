@@ -149,55 +149,55 @@
     height: 100vh;
     overflow: hidden;
     z-index: 0;
-    filter: blur(80px);
-    opacity: 0.3;
+    filter: blur(100px) brightness(0.8);
+    opacity: 0.5;
   }
 
   .blob {
     position: absolute;
     border-radius: 50%;
-    will-change: transform;
+    will-change: transform, opacity;
   }
 
   .blob-1 {
-    width: 40vw;
-    height: 40vw;
-    min-width: 300px;
-    min-height: 300px;
-    background-color: #A21CAF; /* Vibrant Purple */
-    animation: move-blob-1 25s infinite alternate;
+    width: 70vw;
+    height: 40vh;
+    left: -10vw;
+    top: 0vh;
+    background: #0077ff; /* Blue */
+    animation: aurora-1 30s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
   }
 
   .blob-2 {
-    width: 35vw;
-    height: 35vw;
-    min-width: 250px;
-    min-height: 250px;
-    background-color: #FBBF24; /* Gold */
-    animation: move-blob-2 30s infinite alternate;
+    width: 80vw;
+    height: 35vh;
+    right: -15vw;
+    top: 20vh;
+    background: #7a00ff; /* Violet */
+    animation: aurora-2 25s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
   }
 
   .blob-3 {
-    width: 30vw;
-    height: 30vw;
-    min-width: 200px;
-    min-height: 200px;
-    background-color: #C4B5FD; /* Lilac */
-    animation: move-blob-3 20s infinite alternate;
+    width: 60vw;
+    height: 30vh;
+    left: 10vw;
+    top: 65vh;
+    background: #ffc700; /* Yellow/Gold */
+    animation: aurora-3 20s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
   }
 
-  @keyframes move-blob-1 {
-    from { transform: translate(10vw, 10vh) scale(1); }
-    to { transform: translate(60vw, 70vh) scale(1.2); }
+  @keyframes aurora-1 {
+    from { transform: translateY(-20vh) translateX(-10vw) rotate(-20deg) scale(1); opacity: 0.7; }
+    to { transform: translateY(10vh) translateX(10vw) rotate(10deg) scale(1.2); opacity: 0.9; }
   }
 
-  @keyframes move-blob-2 {
-    from { transform: translate(80vw, 20vh) scale(1); }
-    to { transform: translate(20vw, 50vh) scale(0.8); }
+  @keyframes aurora-2 {
+    from { transform: translateY(-15vh) translateX(5vw) rotate(15deg) scale(0.9); opacity: 0.6; }
+    to { transform: translateY(15vh) translateX(-5vw) rotate(-5deg) scale(1.1); opacity: 0.8; }
   }
 
-  @keyframes move-blob-3 {
-    from { transform: translate(30vw, 80vh) scale(0.9); }
-    to { transform: translate(70vw, 10vh) scale(1.1); }
+  @keyframes aurora-3 {
+    from { transform: translateY(10vh) translateX(-15vw) rotate(5deg) scale(1.1); opacity: 0.8; }
+    to { transform: translateY(-10vh) translateX(15vw) rotate(-15deg) scale(0.9); opacity: 1.0; }
   }
 }
