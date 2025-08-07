@@ -93,8 +93,8 @@ export default function TextToTextPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground font-sans overflow-hidden">
-      <div className="absolute inset-0 z-0">
+    <div className="flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden">
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1A1A2E] to-[#16213E]">
         {/* Animated background elements will go here */}
       </div>
 
