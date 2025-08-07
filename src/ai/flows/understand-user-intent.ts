@@ -35,7 +35,7 @@ export async function getOpenRouterResponse(
         messages: [
           {
             role: 'system',
-            content: 'You are an AI assistant. Your goal is to accurately recognize user intent and provide helpful, actionable responses. When you receive a transcription of a user\'s voice command, analyze the intent and reply with the exact answer, action step, or relevant information in a way that a smart voice assistant would. Never just repeat the intent—always generate a clear and useful response. If the intent isn’t clear, politely ask the user to clarify.',
+            content: "Act as an AI assistant that accurately recognizes user intent and provides helpful, actionable responses. When I speak or type something, analyze the intent and reply with the exact answer, action step, or relevant information in a way that a smart voice assistant would. Never just repeat the intent—always generate a clear and useful response. If the intent isn’t clear, politely ask the user to clarify.",
           },
           { role: 'user', content: input.transcription },
         ],

@@ -84,7 +84,14 @@ export default function VocalVersePage() {
       description: message,
     });
     setIsLoading(false);
-    setConversation(prev => prev.filter(m => !m.isLoading));
+    setConversation(prev => {
+        const newConversation = [...prev];
+        const lastMessage = newConversation[newConversation.length - 1];
+        if (lastMessage?.isLoading) {
+            newConversation.pop();
+        }
+        return newConversation;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,9 +102,11 @@ export default function VocalVersePage() {
     setInputText('');
     setIsLoading(true);
 
-    setConversation(prev => [...prev, { type: 'user', text }]);
-    setConversation(prev => [...prev, { type: 'assistant', text: '', isLoading: true }]);
+    const userMessage: ConversationEntry = { type: 'user', text };
+    const assistantLoadingMessage: ConversationEntry = { type: 'assistant', text: '', isLoading: true };
 
+    setConversation(prev => [...prev, userMessage, assistantLoadingMessage]);
+    
     try {
       const intentResult = await getOpenRouterResponse({ transcription: text });
       const responseText = intentResult.response;
@@ -138,13 +147,10 @@ export default function VocalVersePage() {
        <main className="flex-1 overflow-hidden">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className="container mx-auto p-4 h-full">
-            {conversation.length === 0 && !isLoading ? (
+            {conversation.length === 0 ? (
               <WelcomeMessage />
             ) : (
               conversation.map((msg, index) => <ChatBubble key={index} message={msg} />)
-            )}
-            {conversation.length > 0 && isLoading && conversation[conversation.length -1].isLoading && (
-              <ChatBubble message={{ type: 'assistant', text: '', isLoading: true }} />
             )}
           </div>
         </ScrollArea>
