@@ -22,6 +22,13 @@ export default function VocalVersePage() {
   const { toast } = useToast();
   const recognitionRef = useRef<any>(null);
 
+  const startRecording = () => {
+    if (recognitionRef.current && !isRecording && !isLoading) {
+      setIsRecording(true);
+      recognitionRef.current.start();
+    }
+  };
+  
   const speak = (text: string, onEndCallback?: () => void) => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       speechSynthesis.cancel();
@@ -30,6 +37,7 @@ export default function VocalVersePage() {
       utterance.onend = () => {
         setIsLoading(false);
         onEndCallback?.();
+        startRecording(); 
       };
       utterance.onerror = (event) => {
         console.error('SpeechSynthesis Error:', event);
@@ -91,7 +99,14 @@ export default function VocalVersePage() {
       
       recognitionRef.current.onend = () => {
         setIsRecording(false);
+        if (!isLoading) {
+          startRecording();
+        }
       };
+      
+      // Automatically start listening on page load
+      startRecording();
+
     } else {
        toast({
         variant: 'destructive',
@@ -108,6 +123,7 @@ export default function VocalVersePage() {
         speechSynthesis.cancel();
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
   const handleSubmit = async (text: string) => {
@@ -124,17 +140,6 @@ export default function VocalVersePage() {
       handleError('Failed to get response. Please try again.', error, true);
     }
   };
-
-  const toggleRecording = () => {
-    if (!recognitionRef.current) return;
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      setIsRecording(true);
-      recognitionRef.current.start();
-    }
-  };
   
   const getMicIcon = () => {
     if (isLoading) return <Loader2 className="w-16 h-16 animate-spin" />;
@@ -148,24 +153,23 @@ export default function VocalVersePage() {
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
           {isRecording && <RecordingIndicator />}
-       </main>
-       <footer className="p-4 border-t bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center justify-center">
-            <button
-              type="button"
+          {!isRecording && (
+             <div
               className={cn(
                   'h-32 w-32 rounded-full flex items-center justify-center text-white transition-all duration-300 ease-in-out',
-                  'bg-gradient-to-br from-primary to-accent hover:from-accent hover:to-primary',
-                  'shadow-lg hover:shadow-2xl transform hover:scale-105',
-                  { 'animate-pulse-glow': isRecording },
-                  { 'cursor-not-allowed opacity-50': isLoading }
+                  'bg-gradient-to-br from-primary to-accent',
+                  'shadow-lg'
               )}
-              onClick={toggleRecording}
-              disabled={isLoading}
-              aria-label={isRecording ? 'Stop recording' : 'Start recording'}
             >
               {getMicIcon()}
-            </button>
+            </div>
+          )}
+       </main>
+       <footer className="p-4 border-t bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex items-center justify-center h-32">
+           <p className="text-muted-foreground text-center">
+             {isLoading ? "Thinking..." : isRecording ? "Listening..." : "Waiting to listen..."}
+           </p>
         </div>
        </footer>
     </div>
