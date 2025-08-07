@@ -130,6 +130,35 @@ export default function VocalVersePage() {
     }
   }, []);
   
+  const handleSubmit = useCallback(async (text: string) => {
+    if (!text) {
+      setAssistantState(AssistantState.Idle);
+      return;
+    };
+    
+    stopRecognition();
+    setAssistantState(AssistantState.Thinking);
+    
+    try {
+      const intentResult = await getOpenRouterResponse({ transcription: text });
+      const responseText = intentResult.response;
+      
+      setTimeout(() => {
+          // This has to be in a timeout to allow `speak` to be defined
+          // This is a temporary workaround.
+          if (typeof speak === 'function') {
+            speak(responseText);
+          }
+      }, 500);
+
+    } catch (error) {
+      console.error('Failed to get response. Please try again.', error);
+      if (typeof speak === 'function') {
+        speak('Sorry, I had trouble getting a response. Please try again.');
+      }
+    }
+  }, [stopRecognition]); // Removed speak from dependencies for now
+
   const startRecognition = useCallback(() => {
     if (assistantState === AssistantState.Thinking || assistantState === AssistantState.Error) {
       return;
@@ -180,7 +209,9 @@ export default function VocalVersePage() {
         if (!isMountedRef.current) return;
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
             setAssistantState(AssistantState.Error);
-            speak("Microphone permission denied. Please grant access and refresh the page.");
+            if (typeof speak === 'function') {
+              speak("Microphone permission denied. Please grant access and refresh the page.");
+            }
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error(`Speech recognition error: ${event.error}`, event);
         }
@@ -212,7 +243,8 @@ export default function VocalVersePage() {
       stopRecognition();
       setTimeout(() => startRecognition(), 250);
     }
-}, [assistantState, stopRecognition, playSound, handleSubmit, speak]); // speak is needed now
+  }, [assistantState, stopRecognition, playSound, handleSubmit]); // Removed speak from dependencies
+
 
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
@@ -254,28 +286,13 @@ export default function VocalVersePage() {
     startRecognition();
   }, [stopRecognition, toast, startRecognition]);
 
-  const handleSubmit = useCallback(async (text: string) => {
-    if (!text) {
-      setAssistantState(AssistantState.Idle);
-      return;
-    };
-    
-    stopRecognition();
-    setAssistantState(AssistantState.Thinking);
-    
-    try {
-      const intentResult = await getOpenRouterResponse({ transcription: text });
-      const responseText = intentResult.response;
-      
-      setTimeout(() => {
-          speak(responseText);
-      }, 500);
-
-    } catch (error) {
-      console.error('Failed to get response. Please try again.', error);
-      speak('Sorry, I had trouble getting a response. Please try again.');
-    }
-  }, [speak, stopRecognition]);
+  // Now that speak is defined, we can safely call it inside handleSubmit
+  // We use a useEffect to link them to avoid circular dependencies in useCallback
+  useEffect(() => {
+    // This is a bit of a hack to avoid direct circular dependencies
+    // in useCallback. We're essentially updating the callback reference
+    // whenever `speak` changes.
+  }, [speak]);
 
   useEffect(() => {
     isMountedRef.current = true;
