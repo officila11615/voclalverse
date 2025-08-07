@@ -67,7 +67,7 @@ export default function VocalVersePage() {
   const handleError = (message: string, error?: any, speakMessage = false) => {
     if (error) {
        // Do not log "no-speech" as a console error, as it's expected behavior
-      if (error.error !== 'no-speech') {
+      if ((error as any).error !== 'no-speech') {
         console.error(message, error);
       }
     } else {
