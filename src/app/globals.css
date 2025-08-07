@@ -45,7 +45,7 @@
     --muted-foreground: 240 5% 64.9%;
     --accent: 274 41% 40%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
@@ -95,6 +95,20 @@
   }
   .animate-pulse-glow {
     animation: pulse-glow 2s infinite ease-in-out;
+  }
+
+  @keyframes pulse-glow-red {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 hsla(var(--destructive), 0.5);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px 15px hsla(var(--destructive), 0.2);
+    }
+  }
+  .animate-pulse-glow-red {
+    animation: pulse-glow-red 2s infinite ease-in-out;
   }
 
   @keyframes waveform {

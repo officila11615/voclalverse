@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MicOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
 
@@ -15,23 +15,61 @@ const RecordingIndicator = () => (
   </div>
 );
 
+const ErrorIndicator = () => (
+  <div className="flex flex-col items-center justify-center animate-fade-in">
+    <div className="w-48 h-48 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse-glow-red">
+       <MicOff className="w-24 h-24 text-destructive-foreground/80" />
+    </div>
+    <p className="mt-6 text-xl text-destructive-foreground/90 font-medium">Microphone Unavailable</p>
+  </div>
+);
+
 export default function VocalVersePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [micError, setMicError] = useState(false);
   const { toast } = useToast();
   const recognitionRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
+  const playSound = (type: 'start' | 'end' | 'confirmation') => {
+    if (!audioContextRef.current) return;
+    const context = audioContextRef.current;
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+
+    gainNode.gain.setValueAtTime(0, context.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.1, context.currentTime + 0.01);
+
+    if (type === 'start') {
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(440, context.currentTime); // A5
+    } else if (type === 'end') {
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(330, context.currentTime); // E4
+    } else if (type === 'confirmation') {
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(523.25, context.currentTime); // C5
+      oscillator.frequency.linearRampToValueAtTime(783.99, context.currentTime + 0.1); // G5
+    }
+    
+    oscillator.start(context.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + (type === 'confirmation' ? 0.15 : 0.1));
+    oscillator.stop(context.currentTime + (type === 'confirmation' ? 0.15 : 0.1));
+  };
+  
   const startRecording = () => {
-    // Adding a timeout to prevent race conditions where start is called before recognition has fully stopped.
     setTimeout(() => {
-      if (recognitionRef.current && !isRecording && !isLoading) {
+      if (recognitionRef.current && !isRecording && !isLoading && !micError) {
         try {
           setIsRecording(true);
           recognitionRef.current.start();
         } catch (error) {
            console.error("Error starting speech recognition:", error);
-           // If starting fails, reset state and try again after a delay.
            setIsRecording(false);
            setTimeout(startRecording, 100);
         }
@@ -47,12 +85,11 @@ export default function VocalVersePage() {
       utterance.onend = () => {
         setIsLoading(false);
         onEndCallback?.();
-        // Automatically start listening again after speaking is finished
         startRecording(); 
       };
       utterance.onerror = (event) => {
         console.error('SpeechSynthesis Error:', event);
-        handleError('There was an error during speech playback.');
+        handleError('There was an error during speech playback.', null, false);
         setIsLoading(false);
         onEndCallback?.();
       };
@@ -60,14 +97,12 @@ export default function VocalVersePage() {
     } else {
       setIsLoading(false);
       onEndCallback?.();
-      // If speech is not supported, still try to listen
       startRecording();
     }
   };
 
   const handleError = (message: string, error?: any, speakMessage = false) => {
     if (error) {
-       // Do not log "no-speech" as a console error, as it's expected behavior
       if ((error as any).error !== 'no-speech') {
         console.error(message, error);
       }
@@ -84,13 +119,20 @@ export default function VocalVersePage() {
         description: message,
       });
       setIsLoading(false);
-      // If there was a non-spoken error, try to start listening again
       startRecording();
     }
   };
 
   useEffect(() => {
     setIsMounted(true);
+    // Initialize AudioContext on first user interaction (or page load)
+    if (typeof window !== 'undefined' && !audioContextRef.current) {
+        try {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        } catch (e) {
+            console.error("Web Audio API is not supported in this browser.");
+        }
+    }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
@@ -98,37 +140,41 @@ export default function VocalVersePage() {
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = 'en-US';
 
+      recognitionRef.current.onstart = () => {
+        playSound('start');
+      };
+
       recognitionRef.current.onresult = (event: any) => {
+        playSound('confirmation');
         const transcript = event.results[0][0].transcript;
         handleSubmit(transcript);
       };
 
       recognitionRef.current.onerror = (event: any) => {
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          handleError("Microphone permission denied.", event, true);
+          setMicError(true);
+          handleError("Microphone permission denied. Please grant access and refresh the page.", event, true);
         } else if (event.error === 'no-speech') {
-           // Don't speak an error, just restart listening
            startRecording();
         } else {
            handleError(`Speech recognition error: ${event.error}`, event, true);
         }
-        
         setIsRecording(false);
         setIsLoading(false);
       };
       
       recognitionRef.current.onend = () => {
         setIsRecording(false);
-        // This ensures listening continues in a loop
         if (!isLoading) {
+          playSound('end');
           startRecording();
         }
       };
       
-      // Automatically start listening on page load
       startRecording();
 
     } else {
+       setMicError(true);
        toast({
         variant: 'destructive',
         title: 'Browser Not Supported',
@@ -168,13 +214,14 @@ export default function VocalVersePage() {
          <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white">VocalVerse</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-          {isLoading && <Loader2 className="w-20 h-20 animate-spin text-primary animate-fade-in" />}
-          {isRecording && !isLoading && isMounted && <RecordingIndicator />}
+          {micError && <ErrorIndicator />}
+          {!micError && isLoading && <Loader2 className="w-20 h-20 animate-spin text-primary animate-fade-in" />}
+          {!micError && isRecording && !isLoading && isMounted && <RecordingIndicator />}
        </main>
        <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-center h-16">
            <p className="text-muted-foreground text-center text-lg font-body">
-             {isLoading ? "Thinking..." : isRecording ? "Listening..." : "Waiting to listen..."}
+             {micError ? "Microphone Error" : isLoading ? "Thinking..." : isRecording ? "Listening..." : "Initializing..."}
            </p>
         </div>
        </footer>
