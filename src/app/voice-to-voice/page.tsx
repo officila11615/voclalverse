@@ -45,7 +45,7 @@ export default function VocalVersePage() {
   const isMountedRef = useRef(false);
 
   // This ref helps prevent race conditions by tracking if a recognition restart is pending
-  const restartRecognitionTimer = useRef<NodeJS.Timeout | null>(null);
+  const recognitionStopTimer = useRef<NodeJS.Timeout | null>(null);
 
   const playSound = useCallback((type: 'start' | 'end' | 'confirmation') => {
     if (!audioContextRef.current) return;
@@ -85,62 +85,113 @@ export default function VocalVersePage() {
   const stopRecognition = useCallback(() => {
     if (recognitionRef.current) {
         // Clear any pending restarts to avoid race conditions
-        if (restartRecognitionTimer.current) {
-            clearTimeout(restartRecognitionTimer.current);
-            restartRecognitionTimer.current = null;
+        if (recognitionStopTimer.current) {
+            clearTimeout(recognitionStopTimer.current);
+            recognitionStopTimer.current = null;
         }
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
         recognitionRef.current.stop();
+        recognitionRef.current = null;
     }
   }, []);
-
+  
   const startRecognition = useCallback(() => {
-    if (!recognitionRef.current || assistantState === AssistantState.Error) {
+      // If we are not in a state where we should be listening, do nothing.
+      if (assistantState === AssistantState.Thinking || assistantState === AssistantState.Speaking || assistantState === AssistantState.Error) {
         return;
-    }
-    // Prevent starting if already listening
-    if (assistantState === AssistantState.Listening) {
-      return;
-    }
+      }
+      stopRecognition();
 
-    try {
-        stopRecognition(); // Ensure any previous instance is stopped
-        
-        // A small delay to allow the service to fully stop before restarting
-        restartRecognitionTimer.current = setTimeout(() => {
-          if (recognitionRef.current) {
-            recognitionRef.current.start();
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+       if (!SpeechRecognition) {
+          setAssistantState(AssistantState.Error);
+          return;
+       }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+          if (!isMountedRef.current) return;
+          playSound('start');
+          setAssistantState(AssistantState.Listening);
+      };
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+          if (!isMountedRef.current) return;
+          let finalTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+              if (event.results[i].isFinal) {
+                  finalTranscript += event.results[i][0].transcript;
+              }
           }
-        }, 100);
 
-    } catch (e: any) {
-        console.error("Error starting speech recognition:", e);
-        if (e.name !== 'InvalidStateError') { // This error can be ignored
-            setAssistantState(AssistantState.Error);
-        }
-    }
-  }, [assistantState, stopRecognition]);
+          const transcript = finalTranscript.trim();
+          if (transcript) {
+              if (window.speechSynthesis.speaking) {
+                  window.speechSynthesis.cancel();
+              }
+              playSound('confirmation');
+              handleSubmit(transcript);
+          }
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          if (!isMountedRef.current) return;
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+              speak("Microphone permission denied. Please grant access and refresh the page.");
+              setAssistantState(AssistantState.Error);
+          } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+              console.error(`Speech recognition error: ${event.error}`, event);
+          }
+      };
+      
+      recognition.onend = () => {
+          if (isMountedRef.current && assistantState === AssistantState.Listening) {
+             playSound('end');
+             if (assistantState === AssistantState.Listening) {
+                // A small delay before restarting to prevent race conditions on some browsers.
+                recognitionStopTimer.current = setTimeout(() => {
+                   startRecognition();
+                }, 100);
+             }
+          }
+      };
+
+      recognitionRef.current = recognition;
+      try {
+        recognition.start();
+      } catch (e) {
+        console.error("Could not start recognition", e);
+        stopRecognition(); // clean up
+        // try again after a short delay
+        setTimeout(() => startRecognition(), 250);
+      }
+  }, [assistantState, stopRecognition, playSound, handleSubmit, speak]);
 
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
         setAssistantState(AssistantState.Idle);
-        startRecognition();
         return;
     }
 
+    // Stop listening before speaking
     stopRecognition();
     setAssistantState(AssistantState.Speaking);
 
-    // Cancel any previous speech
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.0;
 
     utterance.onend = () => {
-        // Only restart if the component is still mounted and no other state has taken over
         if (isMountedRef.current && assistantState === AssistantState.Speaking) {
             setAssistantState(AssistantState.Idle);
-            startRecognition();
         }
     };
     
@@ -155,16 +206,18 @@ export default function VocalVersePage() {
         }
         if (isMountedRef.current && assistantState === AssistantState.Speaking) {
             setAssistantState(AssistantState.Idle);
-            startRecognition();
         }
     };
 
     window.speechSynthesis.speak(utterance);
-  }, [assistantState, startRecognition, stopRecognition, toast]);
+  }, [assistantState, stopRecognition, toast]);
 
 
   const handleSubmit = useCallback(async (text: string) => {
-    if (!text) return;
+    if (!text) {
+      setAssistantState(AssistantState.Idle);
+      return;
+    };
     
     setAssistantState(AssistantState.Thinking);
     stopRecognition();
@@ -204,77 +257,30 @@ export default function VocalVersePage() {
       });
       return;
     }
-      
-    if (!recognitionRef.current) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = 'en-US';
-
-        recognitionRef.current.onstart = () => {
-            playSound('start');
-            if (isMountedRef.current) setAssistantState(AssistantState.Listening);
-        };
-
-        recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
-            let finalTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                }
-            }
-
-            const transcript = finalTranscript.trim();
-            if (transcript) {
-                // This is the "barge-in" logic.
-                if (window.speechSynthesis.speaking) {
-                    window.speechSynthesis.cancel();
-                }
-                playSound('confirmation');
-                handleSubmit(transcript);
-            }
-        };
-
-        recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                setAssistantState(AssistantState.Error);
-                speak("Microphone permission denied. Please grant access and refresh the page.");
-            } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-                console.error(`Speech recognition error: ${event.error}`, event);
-            }
-        };
-        
-        recognitionRef.current.onend = () => {
-             // Only restart if we are in a state that should transition to listening
-             if (isMountedRef.current && assistantState === AssistantState.Listening) {
-                playSound('end');
-                // The recognition should only be restarted if we intend to keep listening.
-                // Other state transitions (like Thinking) will handle their own flow.
-                startRecognition();
-             }
-        };
-    }
-    
-    // Initial start
-    if (assistantState === AssistantState.Idle) {
-       startRecognition();
-    }
 
     return () => {
       isMountedRef.current = false;
-      if (recognitionRef.current) {
-        recognitionRef.current.onend = null; // Prevent onend from firing on unmount
-        recognitionRef.current.stop();
-      }
-      if (restartRecognitionTimer.current) {
-          clearTimeout(restartRecognitionTimer.current);
+      stopRecognition();
+      if (recognitionStopTimer.current) {
+          clearTimeout(recognitionStopTimer.current);
       }
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This effect should only run once on mount to set everything up.
+  }, []); 
+
+  // This effect manages the state transitions. When state becomes Idle, it should start listening.
+  useEffect(() => {
+    if (assistantState === AssistantState.Idle && isMountedRef.current) {
+      // Use a timeout to ensure all cleanup from previous states is complete
+      const transitionTimeout = setTimeout(() => {
+        startRecognition();
+      }, 100);
+      return () => clearTimeout(transitionTimeout);
+    }
+  }, [assistantState, startRecognition]);
 
   const getStatusText = () => {
     switch(assistantState) {
@@ -312,3 +318,4 @@ export default function VocalVersePage() {
     </div>
   );
 }
+ 
