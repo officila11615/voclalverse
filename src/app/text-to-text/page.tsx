@@ -3,11 +3,15 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
+import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 
 type Message = {
   id: number;
@@ -16,12 +20,14 @@ type Message = {
 };
 
 const initialMessages: Message[] = [
-  { id: 1, role: 'assistant', content: 'Hello! How can I help you today?' },
+  { id: 1, role: 'assistant', content: 'Hello! Type a message to start the conversation.' },
 ];
 
 export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -37,27 +43,43 @@ export default function TextToTextPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (inputValue.trim() === '') return;
+  const handleSendMessage = async () => {
+    if (inputValue.trim() === '' || isLoading) return;
 
     const newUserMessage: Message = {
-      id: messages.length + 1,
+      id: Date.now(),
       role: 'user',
       content: inputValue,
     };
 
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setInputValue('');
+    setIsLoading(true);
 
-    // Fake assistant reply after a delay
-    setTimeout(() => {
+    try {
+      const result = await getOpenRouterResponse({ transcription: inputValue });
       const assistantReply: Message = {
-        id: messages.length + 2,
+        id: Date.now() + 1,
         role: 'assistant',
-        content: "This is a hardcoded reply. I'll be smarter soon!",
+        content: result.response,
       };
       setMessages((prevMessages) => [...prevMessages, assistantReply]);
-    }, 1500);
+    } catch (error) {
+      console.error("Failed to get AI response:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to get a response from the assistant. Please try again.',
+      });
+       const assistantReply: Message = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: "Sorry, I couldn't connect to the AI. Please check the server and try again.",
+      };
+       setMessages((prevMessages) => [...prevMessages, assistantReply]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -67,14 +89,14 @@ export default function TextToTextPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground">
-      <header className="p-4 border-b border-white/10 shadow-lg flex items-center">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground font-sans">
+      <header className="p-4 border-b border-white/10 shadow-lg flex items-center gap-4">
         <Link href="/" passHref>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="w-6 h-6" />
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1">Text to Text</h1>
+        <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
       </header>
       <main className="flex-1 flex flex-col overflow-hidden">
         <ScrollArea className="flex-1 p-4 md:p-6" ref={scrollAreaRef}>
@@ -83,22 +105,42 @@ export default function TextToTextPage() {
               <div
                 key={message.id}
                 className={cn(
-                  'flex w-full max-w-lg items-end gap-2',
-                  message.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'
+                  'flex w-full items-end gap-3 animate-fade-in',
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
                 )}
               >
+                 {message.role === 'assistant' && (
+                    <Avatar className="w-8 h-8 bg-primary/20 text-primary">
+                        <AvatarFallback>AI</AvatarFallback>
+                    </Avatar>
+                 )}
                 <div
                   className={cn(
-                    'rounded-lg p-3 shadow-md animate-fade-in',
+                    'max-w-md rounded-lg p-3 shadow-md',
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground rounded-br-none'
-                      : 'bg-secondary text-secondary-foreground rounded-bl-none'
+                      : 'bg-background/50 text-foreground rounded-bl-none'
                   )}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 </div>
+                 {message.role === 'user' && (
+                    <Avatar className="w-8 h-8">
+                        <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                 )}
               </div>
             ))}
+             {isLoading && (
+              <div className="flex justify-start items-end gap-3 animate-fade-in">
+                <Avatar className="w-8 h-8 bg-primary/20 text-primary">
+                  <AvatarFallback>AI</AvatarFallback>
+                </Avatar>
+                <div className="max-w-md rounded-lg p-3 shadow-md bg-background/50 text-foreground rounded-bl-none">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </main>
@@ -112,8 +154,9 @@ export default function TextToTextPage() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              disabled={isLoading}
             />
-            <Button size="icon" className="bg-primary hover:bg-primary/80" onClick={handleSendMessage}>
+            <Button size="icon" className="bg-primary hover:bg-primary/80" onClick={handleSendMessage} disabled={isLoading}>
               <Send className="w-5 h-5" />
               <span className="sr-only">Send</span>
             </Button>
