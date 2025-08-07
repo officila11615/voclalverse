@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
 
 const RecordingIndicator = () => (
-  <div className="flex items-center justify-center space-x-2 h-24">
+  <div className="flex items-center justify-center space-x-2 h-24 animate-fade-in">
     <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '0ms' }} />
     <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '200ms' }} />
     <div className="w-3 h-full bg-primary/80 rounded-full animate-waveform-glow" style={{ animationDelay: '400ms' }} />
@@ -18,6 +18,7 @@ const RecordingIndicator = () => (
 export default function VocalVersePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
   const recognitionRef = useRef<any>(null);
 
@@ -89,6 +90,7 @@ export default function VocalVersePage() {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
@@ -102,10 +104,7 @@ export default function VocalVersePage() {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        let speakableMessage = "An unexpected error occurred. Please try again."
-
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          speakableMessage = "I can't access the microphone. Please grant permission and try again.";
           handleError("Microphone permission denied.", event, true);
         } else if (event.error === 'no-speech') {
            // Don't speak an error, just restart listening
@@ -164,17 +163,17 @@ export default function VocalVersePage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground">
        <header className="p-4 border-b border-white/10 shadow-lg">
-         <h1 className="text-3xl font-bold text-center font-headline tracking-wider">VocalVerse</h1>
+         <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white">VocalVerse</h1>
        </header>
        <main className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-          {isLoading && <Loader2 className="w-20 h-20 animate-spin text-primary" />}
-          {isRecording && !isLoading && <RecordingIndicator />}
+          {isLoading && <Loader2 className="w-20 h-20 animate-spin text-primary animate-fade-in" />}
+          {isRecording && !isLoading && isMounted && <RecordingIndicator />}
        </main>
-       <footer className="p-4 border-t border-white/10 bg-background/80 backdrop-blur-sm">
+       <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-center h-16">
-           <p className="text-muted-foreground text-center text-lg">
+           <p className="text-muted-foreground text-center text-lg font-body">
              {isLoading ? "Thinking..." : isRecording ? "Listening..." : "Waiting to listen..."}
            </p>
         </div>
