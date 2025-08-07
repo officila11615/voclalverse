@@ -77,14 +77,14 @@ export default function VocalVersePage() {
   const isMountedRef = useRef(false);
   const wasSpeakingWhenListeningStarted = useRef(false);
   const preferredVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
-  const recognitionStopTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Sound playback utility
   const playSound = useCallback((type: 'start' | 'end' | 'confirmation') => {
-    if (!audioContextRef.current) return;
+    if (!audioContextRef.current || audioContextRef.current.state === 'closed') return;
     const context = audioContextRef.current;
     
     if (context.state === 'suspended') {
-      context.resume();
+      context.resume().catch(console.error);
     }
     
     const oscillator = context.createOscillator();
@@ -113,50 +113,21 @@ export default function VocalVersePage() {
     oscillator.stop(context.currentTime + (type === 'confirmation' ? 0.15 : 0.1));
   }, []);
 
+  // Stops speech recognition safely
   const stopRecognition = useCallback(() => {
     if (recognitionRef.current) {
-        if (recognitionStopTimer.current) {
-            clearTimeout(recognitionStopTimer.current);
-            recognitionStopTimer.current = null;
-        }
         recognitionRef.current.onstart = null;
         recognitionRef.current.onresult = null;
         recognitionRef.current.onerror = null;
         recognitionRef.current.onend = null;
-        recognitionRef.current.abort(); // Use abort for immediate stop
+        try {
+            recognitionRef.current.abort();
+        } catch (e) {
+            console.warn("SpeechRecognition abort failed:", e);
+        }
         recognitionRef.current = null;
     }
   }, []);
-
-  const handleSubmit = useCallback(async (text: string) => {
-    if (!text) {
-      if (isMountedRef.current) setAssistantState(AssistantState.Idle);
-      return;
-    };
-    
-    stopRecognition();
-    if (isMountedRef.current) setAssistantState(AssistantState.Thinking);
-    
-    const lowerCaseText = text.toLowerCase().trim();
-    const repeatCommands = ["repeat", "say that again", "what was that"];
-    if (repeatCommands.includes(lowerCaseText) && lastResponse) {
-        // speak() will be called via useEffect watching assistantState
-        if (isMountedRef.current) setAssistantState(AssistantState.Speaking);
-        return;
-    }
-    
-    try {
-      const intentResult = await getOpenRouterResponse({ transcription: text });
-      const responseText = intentResult.response;
-      setLastResponse(responseText);
-    } catch (error) {
-      console.error('Failed to get response. Please try again.', error);
-      const errorMessage = 'Sorry, I had trouble getting a response. Please try again.';
-      setLastResponse(errorMessage);
-    } finally {
-        if(isMountedRef.current) setAssistantState(AssistantState.Speaking);
-    }
-  }, [stopRecognition, lastResponse]);
   
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis || !text) {
@@ -164,6 +135,7 @@ export default function VocalVersePage() {
         return;
     }
 
+    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
@@ -189,6 +161,7 @@ export default function VocalVersePage() {
                 description: 'Sorry, there was an error during speech playback.',
             });
         }
+        // Always return to Idle to allow recovery
         if (isMountedRef.current) {
             setAssistantState(AssistantState.Idle);
         }
@@ -197,25 +170,60 @@ export default function VocalVersePage() {
     window.speechSynthesis.speak(utterance);
   }, [toast]);
   
+  // Handles processing the transcribed text
+  const handleSubmit = useCallback(async (text: string) => {
+    if (!isMountedRef.current) return;
+    if (!text.trim()) {
+      setAssistantState(AssistantState.Idle);
+      return;
+    };
+    
+    stopRecognition();
+    setAssistantState(AssistantState.Thinking);
+    
+    const lowerCaseText = text.toLowerCase().trim();
+    const repeatCommands = ["repeat", "say that again", "what was that"];
+    if (repeatCommands.includes(lowerCaseText) && lastResponse) {
+        speak(lastResponse);
+        setAssistantState(AssistantState.Speaking);
+        return;
+    }
+    
+    try {
+      const intentResult = await getOpenRouterResponse({ transcription: text });
+      const responseText = intentResult.response;
+      setLastResponse(responseText);
+      speak(responseText);
+      setAssistantState(AssistantState.Speaking);
+    } catch (error) {
+      console.error('Failed to get response. Please try again.', error);
+      const errorMessage = 'Sorry, I had trouble getting a response. Please try again.';
+      setLastResponse(errorMessage);
+      speak(errorMessage);
+      setAssistantState(AssistantState.Speaking);
+    }
+  }, [stopRecognition, lastResponse, speak]);
+  
+  // Starts speech recognition
   const startRecognition = useCallback(() => {
     if (recognitionRef.current || assistantState === AssistantState.Thinking || assistantState === AssistantState.Error) {
       return;
     }
-
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        setAssistantState(AssistantState.Error);
+        if (isMountedRef.current) setAssistantState(AssistantState.Error);
         return;
     }
     
     wasSpeakingWhenListeningStarted.current = window.speechSynthesis.speaking;
 
     if (!wasSpeakingWhenListeningStarted.current) {
-        setAssistantState(AssistantState.Listening);
+        if(isMountedRef.current) setAssistantState(AssistantState.Listening);
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false; // Process single utterances
+    recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 
@@ -229,20 +237,17 @@ export default function VocalVersePage() {
     recognition.onresult = (event: SpeechRecognitionEvent) => {
         if (!isMountedRef.current) return;
         
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
-            }
-        }
-
-        const transcript = finalTranscript.trim();
+        const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('').trim();
         
         if (transcript) {
             if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
             }
             playSound('confirmation');
+            // This component is now responsible for submission
             handleSubmit(transcript);
         }
     };
@@ -253,14 +258,19 @@ export default function VocalVersePage() {
             setAssistantState(AssistantState.Error);
             const errorMessage = "Microphone permission denied. Please grant access in your browser settings and refresh the page.";
             setLastResponse(errorMessage);
+            speak(errorMessage); // Audibly inform the user
             setAssistantState(AssistantState.Speaking);
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
             console.error(`Speech recognition error: ${event.error}`, event);
+            // Attempt to recover by going idle
+            setAssistantState(AssistantState.Idle);
         }
     };
     
     recognition.onend = () => {
       recognitionRef.current = null;
+      // Only transition to Idle if we were actively listening. 
+      // If we're thinking or speaking, another state transition is already in progress.
       if (isMountedRef.current && assistantState === AssistantState.Listening) {
         if (!wasSpeakingWhenListeningStarted.current) {
           playSound('end');
@@ -274,12 +284,12 @@ export default function VocalVersePage() {
       recognition.start();
     } catch (e) {
       console.error("Could not start recognition", e);
-      // Clean up if start fails
       recognitionRef.current = null;
+      if (isMountedRef.current) setAssistantState(AssistantState.Idle); // Recover on start failure
     }
-  }, [assistantState, playSound, handleSubmit]);
+  }, [assistantState, playSound, handleSubmit, speak]);
 
-
+  // Main component lifecycle
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -302,13 +312,10 @@ export default function VocalVersePage() {
       return;
     }
 
-    // Set up voices
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       if (voices.length > 0) {
-        const voiceNamesToTry = [
-            "Google US English", "Samantha", "Microsoft Zira - English (United States)", "Alex",
-        ];
+        const voiceNamesToTry = ["Google US English", "Samantha", "Microsoft Zira - English (United States)", "Alex"];
         let foundVoice: SpeechSynthesisVoice | null = null;
         for (const name of voiceNamesToTry) {
             foundVoice = voices.find(voice => voice.name === name && voice.lang.startsWith('en')) || null;
@@ -325,35 +332,31 @@ export default function VocalVersePage() {
         loadVoices();
     }
 
+    // Cleanup function
     return () => {
       isMountedRef.current = false;
       stopRecognition();
-      if (recognitionStopTimer.current) {
-          clearTimeout(recognitionStopTimer.current);
-      }
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
       }
     };
   }, [toast, stopRecognition]); 
 
+  // Effect to manage starting recognition based on state
   useEffect(() => {
-    // This effect handles state transitions to Listening or Speaking
+    // We want to listen when idle, and also when the assistant is speaking (for barge-in)
     if (assistantState === AssistantState.Idle || assistantState === AssistantState.Speaking) {
       startRecognition();
-    } else if (assistantState === AssistantState.Thinking) {
-      stopRecognition();
+    } else {
+       // If we are thinking or there's an error, make sure recognition is stopped.
+       stopRecognition();
     }
   }, [assistantState, startRecognition, stopRecognition]);
 
-  useEffect(() => {
-    // This effect triggers speech when the state becomes Speaking
-    if (assistantState === AssistantState.Speaking && lastResponse) {
-      speak(lastResponse);
-    }
-  }, [assistantState, lastResponse, speak]);
-
-
+  // Status text for the UI
   const getStatusText = () => {
     switch(assistantState) {
         case AssistantState.Listening: return "Listening...";
@@ -365,12 +368,13 @@ export default function VocalVersePage() {
     }
   }
 
+  // Handle click on the orb to interrupt and reset
   const handleOrbClick = () => {
     if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel(); // Interrupt speech
     }
-    stopRecognition();
-    setAssistantState(AssistantState.Idle); // Return to idle to re-trigger listening
+    stopRecognition(); // Stop any active listening
+    setAssistantState(AssistantState.Idle); // Return to idle, which will re-trigger listening via useEffect
   }
 
   return (
