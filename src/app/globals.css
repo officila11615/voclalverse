@@ -141,20 +141,63 @@
     animation: waveform-glow 1.5s infinite ease-in-out;
   }
 
-  @keyframes gradient-move {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
-  .animated-gradient-bg {
+  .blob-background {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 0;
+    top: 0;
+    left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(270deg, #4F46E5, #6366F1, #A21CAF, #F472B6, #FBBF24, #4F46E5);
-    background-size: 1200% 1200%;
-    animation: gradient-move 24s ease-in-out infinite;
+    overflow: hidden;
+    z-index: 0;
+    filter: blur(80px);
+    opacity: 0.3;
+  }
+
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform;
+  }
+
+  .blob-1 {
+    width: 40vw;
+    height: 40vw;
+    min-width: 300px;
+    min-height: 300px;
+    background-color: #A21CAF; /* Vibrant Purple */
+    animation: move-blob-1 25s infinite alternate;
+  }
+
+  .blob-2 {
+    width: 35vw;
+    height: 35vw;
+    min-width: 250px;
+    min-height: 250px;
+    background-color: #FBBF24; /* Gold */
+    animation: move-blob-2 30s infinite alternate;
+  }
+
+  .blob-3 {
+    width: 30vw;
+    height: 30vw;
+    min-width: 200px;
+    min-height: 200px;
+    background-color: #C4B5FD; /* Lilac */
+    animation: move-blob-3 20s infinite alternate;
+  }
+
+  @keyframes move-blob-1 {
+    from { transform: translate(10vw, 10vh) scale(1); }
+    to { transform: translate(60vw, 70vh) scale(1.2); }
+  }
+
+  @keyframes move-blob-2 {
+    from { transform: translate(80vw, 20vh) scale(1); }
+    to { transform: translate(20vw, 50vh) scale(0.8); }
+  }
+
+  @keyframes move-blob-3 {
+    from { transform: translate(30vw, 80vh) scale(0.9); }
+    to { transform: translate(70vw, 10vh) scale(1.1); }
   }
 }

@@ -28,6 +28,7 @@ export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [animateBg, setAnimateBg] = useState(true);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -95,8 +96,14 @@ export default function TextToTextPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden">
-      <div className="animated-gradient-bg" />
-      <div className="relative z-10 flex flex-col h-full bg-black/30 backdrop-blur-sm">
+      {animateBg && (
+        <div className="blob-background">
+          <div className="blob blob-1" />
+          <div className="blob blob-2" />
+          <div className="blob blob-3" />
+        </div>
+      )}
+      <div className="relative z-10 flex flex-col h-full bg-black/40 backdrop-blur-sm">
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/" passHref>
@@ -106,6 +113,10 @@ export default function TextToTextPage() {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
+          </div>
+           <div className="flex items-center space-x-2">
+            <Switch id="animate-bg" checked={animateBg} onCheckedChange={setAnimateBg} />
+            <Label htmlFor="animate-bg">Animate</Label>
           </div>
         </header>
         <main className="flex-1 flex flex-col overflow-hidden">
