@@ -155,12 +155,15 @@ export default function VocalVersePage() {
       };
 
       recognitionRef.current.onresult = (event: any) => {
-        if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
-          window.speechSynthesis.cancel();
-        }
-        playSound('confirmation');
         const transcript = event.results[0][0].transcript;
-        handleSubmit(transcript);
+        if (transcript) {
+            // This is the "barge-in" logic. If the assistant is speaking, stop it.
+            if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+            playSound('confirmation');
+            handleSubmit(transcript);
+        }
       };
 
       recognitionRef.current.onerror = (event: any) => {
