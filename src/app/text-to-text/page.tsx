@@ -28,7 +28,6 @@ export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [animationEnabled, setAnimationEnabled] = useState(true);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -96,13 +95,9 @@ export default function TextToTextPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden">
-       <div className={cn(
-          "absolute inset-0 z-0 bg-gradient-to-br from-[#1A1A2E] to-[#16213E] bg-[length:200%_200%]",
-          animationEnabled && "animate-gradient"
-        )}></div>
-
-      <div className="relative z-10 flex flex-col h-full bg-black/10">
-        <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4 bg-black/20 backdrop-blur-sm">
+      <div className="animated-gradient-bg" />
+      <div className="relative z-10 flex flex-col h-full bg-black/30 backdrop-blur-sm">
+        <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/" passHref>
               <Button variant="ghost" size="icon">
@@ -111,14 +106,6 @@ export default function TextToTextPage() {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="animation-switch"
-              checked={animationEnabled}
-              onCheckedChange={setAnimationEnabled}
-            />
-            <Label htmlFor="animation-switch" className="text-white/80 text-sm">Animate BG</Label>
           </div>
         </header>
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -167,7 +154,7 @@ export default function TextToTextPage() {
             </div>
           </ScrollArea>
         </main>
-        <footer className="p-4 border-t border-white/10 bg-black/20 backdrop-blur-sm">
+        <footer className="p-4 border-t border-white/10">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center gap-2">
               <Input 
