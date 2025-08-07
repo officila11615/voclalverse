@@ -63,15 +63,22 @@ export default function VocalVersePage() {
   };
   
   const startRecording = () => {
+    // A brief timeout helps prevent race conditions on some browsers.
     setTimeout(() => {
       if (recognitionRef.current && !isRecording && !isLoading && !micError) {
         try {
           setIsRecording(true);
           recognitionRef.current.start();
-        } catch (error) {
-           console.error("Error starting speech recognition:", error);
-           setIsRecording(false);
-           setTimeout(startRecording, 100);
+        } catch (error: any) {
+           // This specific error occurs if start() is called while recognition is already active.
+           // We can safely ignore it and let the existing session continue.
+           if (error.name === 'InvalidStateError') {
+                console.warn("Speech recognition already active. Ignoring redundant start call.");
+                setIsRecording(true); // Ensure state is correct
+           } else {
+                console.error("Error starting speech recognition:", error);
+                setIsRecording(false); // Reset state on other errors
+           }
         }
       }
     }, 100); 
@@ -174,8 +181,7 @@ export default function VocalVersePage() {
         // Only restart if not loading and not in an error state
         if (!isLoading && !micError) {
           playSound('end');
-          // A brief timeout can prevent race conditions on some browsers.
-          setTimeout(() => startRecording(), 50);
+          startRecording();
         }
       };
       
