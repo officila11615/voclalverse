@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, type FC } from 'react';
-import { User, Bot, Loader2, BrainCircuit, Mic, MicOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useRef, useEffect } from 'react';
+import { Loader2, BrainCircuit, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOpenRouterResponse } from '@/ai/flows/understand-user-intent';
 import { cn } from '@/lib/utils';
@@ -55,7 +54,9 @@ export default function VocalVersePage() {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      speechSynthesis.cancel();
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        speechSynthesis.cancel();
+      }
     };
   }, [toast]);
 
@@ -112,9 +113,8 @@ export default function VocalVersePage() {
   };
   
   const getMicIcon = () => {
-    if (isRecording) return <MicOff className="w-12 h-12" />;
-    if (isLoading) return <Loader2 className="w-12 h-12 animate-spin" />;
-    return <Mic className="w-12 h-12" />;
+    if (isLoading) return <Loader2 className="w-16 h-16 animate-spin" />;
+    return <Mic className="w-16 h-16" />;
   }
 
   return (
@@ -127,17 +127,21 @@ export default function VocalVersePage() {
        </main>
        <footer className="p-4 border-t bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex items-center justify-center">
-            <Button
-                type="button"
-                size="lg"
-                variant={isRecording ? 'destructive' : 'outline'}
-                className="h-24 w-24 rounded-full"
-                onClick={toggleRecording}
-                disabled={isLoading}
-                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-              >
-                {getMicIcon()}
-            </Button>
+            <button
+              type="button"
+              className={cn(
+                  'h-32 w-32 rounded-full flex items-center justify-center text-white transition-all duration-300 ease-in-out',
+                  'bg-gradient-to-br from-primary to-accent hover:from-accent hover:to-primary',
+                  'shadow-lg hover:shadow-2xl transform hover:scale-105',
+                  { 'animate-pulse-glow': isRecording },
+                  { 'cursor-not-allowed opacity-50': isLoading }
+              )}
+              onClick={toggleRecording}
+              disabled={isLoading}
+              aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+            >
+              {getMicIcon()}
+            </button>
         </div>
        </footer>
     </div>
