@@ -74,6 +74,7 @@ export default function VocalVersePage() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const isMountedRef = useRef(false);
+  const wasSpeakingWhenListeningStarted = useRef(false);
 
   // This ref helps prevent race conditions by tracking if a recognition restart is pending
   const recognitionStopTimer = useRef<NodeJS.Timeout | null>(null);
@@ -129,13 +130,96 @@ export default function VocalVersePage() {
     }
   }, []);
   
+  const startRecognition = useCallback(() => {
+    if (assistantState === AssistantState.Thinking || assistantState === AssistantState.Error) {
+      return;
+    }
+    stopRecognition();
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        setAssistantState(AssistantState.Error);
+        return;
+    }
+
+    wasSpeakingWhenListeningStarted.current = assistantState === AssistantState.Speaking;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = !wasSpeakingWhenListeningStarted.current; // Barge-in doesn't need continuous
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+        if (!isMountedRef.current) return;
+        if (!wasSpeakingWhenListeningStarted.current) {
+          playSound('start');
+        }
+        setAssistantState(AssistantState.Listening);
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+        if (!isMountedRef.current) return;
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            }
+        }
+
+        const transcript = finalTranscript.trim();
+        if (transcript) {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel(); // Interrupt speech
+            }
+            playSound('confirmation');
+            handleSubmit(transcript);
+        }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        if (!isMountedRef.current) return;
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            setAssistantState(AssistantState.Error);
+            speak("Microphone permission denied. Please grant access and refresh the page.");
+        } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            console.error(`Speech recognition error: ${event.error}`, event);
+        }
+    };
+    
+    recognition.onend = () => {
+      if (isMountedRef.current && assistantState === AssistantState.Listening) {
+        if (!wasSpeakingWhenListeningStarted.current) {
+          playSound('end');
+        }
+
+        // If listening ends and we were not trying to barge-in, go back to idle to restart listening loop
+        // If we WERE barging in, the utterance onend will handle the state transition.
+        if (assistantState === AssistantState.Listening && !wasSpeakingWhenListeningStarted.current) {
+            recognitionStopTimer.current = setTimeout(() => {
+              if (isMountedRef.current) {
+                  setAssistantState(AssistantState.Idle);
+              }
+            }, 100);
+        }
+      }
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error("Could not start recognition", e);
+      stopRecognition();
+      setTimeout(() => startRecognition(), 250);
+    }
+}, [assistantState, stopRecognition, playSound, handleSubmit, speak]); // speak is needed now
+
   const speak = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
         setAssistantState(AssistantState.Idle);
         return;
     }
-
-    // Stop listening before speaking
+    
     stopRecognition();
     setAssistantState(AssistantState.Speaking);
 
@@ -146,6 +230,7 @@ export default function VocalVersePage() {
 
     utterance.onend = () => {
         if (isMountedRef.current) {
+            // After speaking, go idle, which will trigger listening.
             setAssistantState(AssistantState.Idle);
         }
     };
@@ -165,7 +250,9 @@ export default function VocalVersePage() {
     };
 
     window.speechSynthesis.speak(utterance);
-  }, [stopRecognition, toast]);
+    // Start listening for barge-in
+    startRecognition();
+  }, [stopRecognition, toast, startRecognition]);
 
   const handleSubmit = useCallback(async (text: string) => {
     if (!text) {
@@ -173,8 +260,8 @@ export default function VocalVersePage() {
       return;
     };
     
-    setAssistantState(AssistantState.Thinking);
     stopRecognition();
+    setAssistantState(AssistantState.Thinking);
     
     try {
       const intentResult = await getOpenRouterResponse({ transcription: text });
@@ -182,89 +269,13 @@ export default function VocalVersePage() {
       
       setTimeout(() => {
           speak(responseText);
-      }, 500); // Reduced delay before speaking
+      }, 500);
 
     } catch (error) {
       console.error('Failed to get response. Please try again.', error);
       speak('Sorry, I had trouble getting a response. Please try again.');
     }
   }, [speak, stopRecognition]);
-
-  const startRecognition = useCallback(() => {
-      // If we are not in a state where we should be listening, do nothing.
-      if (assistantState === AssistantState.Thinking || assistantState === AssistantState.Speaking || assistantState === AssistantState.Error) {
-        return;
-      }
-      stopRecognition();
-
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-       if (!SpeechRecognition) {
-          setAssistantState(AssistantState.Error);
-          return;
-       }
-
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-          if (!isMountedRef.current) return;
-          playSound('start');
-          setAssistantState(AssistantState.Listening);
-      };
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-          if (!isMountedRef.current) return;
-          let finalTranscript = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-              if (event.results[i].isFinal) {
-                  finalTranscript += event.results[i][0].transcript;
-              }
-          }
-
-          const transcript = finalTranscript.trim();
-          if (transcript) {
-              if (window.speechSynthesis.speaking) {
-                  window.speechSynthesis.cancel();
-              }
-              playSound('confirmation');
-              handleSubmit(transcript);
-          }
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          if (!isMountedRef.current) return;
-          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-              speak("Microphone permission denied. Please grant access and refresh the page.");
-              setAssistantState(AssistantState.Error);
-          } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
-              console.error(`Speech recognition error: ${event.error}`, event);
-          }
-      };
-      
-      recognition.onend = () => {
-          if (isMountedRef.current && assistantState === AssistantState.Listening) {
-             playSound('end');
-             if (assistantState === AssistantState.Listening) {
-                // A small delay before restarting to prevent race conditions on some browsers.
-                recognitionStopTimer.current = setTimeout(() => {
-                   startRecognition();
-                }, 100);
-             }
-          }
-      };
-
-      recognitionRef.current = recognition;
-      try {
-        recognition.start();
-      } catch (e) {
-        console.error("Could not start recognition", e);
-        stopRecognition(); // clean up
-        // try again after a short delay
-        setTimeout(() => startRecognition(), 250);
-      }
-  }, [assistantState, stopRecognition, playSound, handleSubmit, speak]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -303,8 +314,9 @@ export default function VocalVersePage() {
 
   // This effect manages the state transitions. When state becomes Idle, it should start listening.
   useEffect(() => {
+    // Only start recognition from Idle if we aren't already speaking.
+    // If we are speaking, the barge-in logic in `speak` will handle starting recognition.
     if (assistantState === AssistantState.Idle && isMountedRef.current) {
-      // Use a timeout to ensure all cleanup from previous states is complete
       const transitionTimeout = setTimeout(() => {
         startRecognition();
       }, 100);
