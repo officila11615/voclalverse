@@ -140,36 +140,37 @@
   .animate-waveform-glow {
     animation: waveform-glow 1.5s infinite ease-in-out;
   }
-  
-  @keyframes dark-gradient-move {
+
+  @keyframes float {
     0% {
-      background-position: 0% 50%;
+      transform: translateY(0) translateX(0);
+      opacity: 0.7;
     }
     50% {
-      background-position: 100% 50%;
+      opacity: 0.3;
     }
     100% {
-      background-position: 0% 50%;
+      transform: translateY(-100vh) translateX(20vw);
+      opacity: 0;
     }
   }
 
-  .bg-dark-animated {
+  .particle-container {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
+    background-color: #0d1b2a;
+    overflow: hidden;
     z-index: 0;
-    background: linear-gradient(
-      135deg,
-      #0d1b2a,
-      #1b263b,
-      #415a77,
-      #778da9,
-      #1b263b,
-      #0d1b2a
-    );
-    background-size: 400% 400%;
-    animation: dark-gradient-move 30s ease-in-out infinite;
+  }
+
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: float infinite ease-in-out;
+    bottom: -20px;
+    opacity: 0;
   }
 }

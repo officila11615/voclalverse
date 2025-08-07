@@ -24,6 +24,35 @@ const initialMessages: Message[] = [
   { id: 1, role: 'assistant', content: 'Hello! Type a message to start the conversation.' },
 ];
 
+const AnimatedBackground = () => {
+  const [particles, setParticles] = useState<React.ReactNode[]>([]);
+
+  useEffect(() => {
+    const generateParticles = () => {
+      const particleArray = [];
+      const particleCount = 50; 
+      const colors = ['#6366F1', '#A21CAF', '#38BDF8', '#EAB308'];
+
+      for (let i = 0; i < particleCount; i++) {
+        const size = Math.random() * 4 + 1; // size between 1px and 5px
+        const style: React.CSSProperties = {
+          left: `${Math.random() * 100}vw`,
+          width: `${size}px`,
+          height: `${size}px`,
+          backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+          animationDuration: `${Math.random() * 20 + 15}s`, // duration between 15s and 35s
+          animationDelay: `${Math.random() * 10}s`,
+        };
+        particleArray.push(<div key={i} className="particle" style={style} />);
+      }
+      setParticles(particleArray);
+    };
+    generateParticles();
+  }, []);
+
+  return <div className="particle-container">{particles}</div>;
+};
+
 export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
@@ -97,7 +126,7 @@ export default function TextToTextPage() {
   return (
     <div className="flex flex-col h-screen bg-transparent text-foreground font-sans overflow-hidden">
       {animateBg && (
-        <div className="bg-dark-animated" />
+        <AnimatedBackground />
       )}
       <div className="relative z-10 flex flex-col h-full bg-black/40 backdrop-blur-sm">
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
