@@ -24,15 +24,60 @@ const initialMessages: Message[] = [
   { id: 1, role: 'assistant', content: 'Hello! Type a message to start the conversation.' },
 ];
 
-const AnimatedBackground = () => {
-  return <div className="bg-crystal-aurora" />;
-};
+
+const particlePalette = [
+  "#54a3ff", "#8166e4", "#51c6fa", "#8b79cc", "#2e93fa", "#546eea", "#6ee0f7"
+];
+
+const numParticles = 28;
+
+function getRandom(min:number, max:number) {
+  return Math.random() * (max - min) + min;
+}
+
+function ParticleField() {
+  const [particles, setParticles] = useState<React.ReactNode[]>([]);
+
+  useEffect(() => {
+    const generateParticles = () => {
+      const newParticles = Array.from({length: numParticles}).map((_, i) => {
+        const color = particlePalette[i % particlePalette.length];
+        const left = getRandom(0, 98);
+        const size = getRandom(12,32);
+        const duration = getRandom(14,32);
+        const delay = getRandom(0, 32);
+        return (
+          <span
+            key={i}
+            className="particle-dot"
+            style={{
+              background: color,
+              left: `${left}%`,
+              width: `${size}px`,
+              height: `${size}px`,
+              animationDuration: `${duration}s`,
+              animationDelay: `${-delay}s`
+            }}
+          />
+        );
+      });
+      setParticles(newParticles);
+    };
+
+    generateParticles();
+  }, []);
+
+  return (
+    <div className="bg-particles">
+      {particles}
+    </div>
+  );
+}
 
 export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [animateBg, setAnimateBg] = useState(true);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -100,9 +145,7 @@ export default function TextToTextPage() {
 
   return (
     <div className="flex flex-col h-screen bg-transparent text-foreground font-sans overflow-hidden">
-      {animateBg && (
-        <AnimatedBackground />
-      )}
+      <ParticleField />
       <div className="relative z-10 flex flex-col h-full bg-black/40 backdrop-blur-sm">
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -113,10 +156,6 @@ export default function TextToTextPage() {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
-          </div>
-           <div className="flex items-center space-x-2">
-            <Switch id="animate-bg" checked={animateBg} onCheckedChange={setAnimateBg} />
-            <Label htmlFor="animate-bg">Animate</Label>
           </div>
         </header>
         <main className="flex-1 flex flex-col overflow-hidden">

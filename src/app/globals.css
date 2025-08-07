@@ -142,38 +142,26 @@
   }
 }
 
-@keyframes moveAuroraBand {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.bg-crystal-aurora {
+.bg-particles {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   z-index: 0;
-  pointer-events: none; /* completely non-blocking */
-  background: linear-gradient(120deg,
-    #070a15 0%,
-    #131a33 35%,
-    #184d89 60%,
-    #252342 75%,
-    #5f63a1 100%
-  );
-  background-size: 200% 200%;
-  animation: moveAuroraBand 26s linear infinite;
-}
-
-.bg-crystal-aurora::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(120deg, transparent 20%, #3d7ff2 40%, transparent 60%);
-  opacity: 0.08;
-  background-size: 300% 300%;
-  animation: moveAuroraBand 34s linear infinite reverse;
+  background: #0e153a;  /* deep dark blue */
+  overflow: hidden;
   pointer-events: none;
+}
+.particle-dot {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.22;
+  pointer-events: none;
+  animation-name: particle-move;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes particle-move {
+  0% { transform: translateY(120vh) scale(1);}
+  100% { transform: translateY(-10vh) scale(1.15);}
 }
