@@ -182,7 +182,7 @@ export default function TextToTextPage() {
   return (
     <div className="flex flex-col h-screen bg-transparent text-foreground font-sans overflow-hidden">
       {isAnimationEnabled && <NeuralThreadsBackground />}
-      <div className={cn("relative z-10 flex flex-col h-full", !isAnimationEnabled && 'bg-gradient-to-br from-[#1A1A2E] to-[#16213E]', isAnimationEnabled && 'bg-black/40 backdrop-blur-sm' )}>
+      <div className={cn("relative z-10 flex flex-col h-full animate-fade-in", !isAnimationEnabled && 'bg-gradient-to-br from-[#1A1A2E] to-[#16213E]', isAnimationEnabled && 'bg-black/40 backdrop-blur-sm' )}>
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link href="/" passHref>
@@ -191,7 +191,7 @@ export default function TextToTextPage() {
                 <span className="sr-only">Back to Dashboard</span>
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold font-headline tracking-wider text-white animate-fade-in">Text to Text</h1>
+            <h1 className="text-2xl font-bold font-headline tracking-wider text-white">Text to Text</h1>
           </div>
           <TooltipProvider>
             <div className="flex items-center space-x-2">
@@ -219,7 +219,7 @@ export default function TextToTextPage() {
                 <div
                   key={message.id}
                   className={cn(
-                    'flex w-full items-end gap-3 animate-fade-in',
+                    'flex w-full items-end gap-3',
                     message.role === 'user' ? 'justify-end' : 'justify-start'
                   )}
                 >
@@ -246,7 +246,7 @@ export default function TextToTextPage() {
                 </div>
               ))}
               {isLoading && (
-                <div className="flex justify-start items-end gap-3 animate-fade-in">
+                <div className="flex justify-start items-end gap-3">
                   <Avatar className="w-8 h-8 bg-primary/20 text-primary">
                     <AvatarFallback>AI</AvatarFallback>
                   </Avatar>
@@ -264,7 +264,7 @@ export default function TextToTextPage() {
               <Input 
                 type="text" 
                 placeholder="Type your message..." 
-                className="flex-1 bg-background/50 border-white/20 focus:ring-primary/50 focus:ring-2 font-body"
+                className="flex-1 bg-background/50 border-white/20"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}

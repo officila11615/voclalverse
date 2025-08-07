@@ -72,18 +72,27 @@
   @keyframes fade-in {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(10px) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
-  .animate-fade-in {
-    animation: fade-in 0.5s ease-out forwards;
+  @keyframes input-focus-shimmer {
+    0%, 100% {
+      box-shadow: 0 0 0 0px hsl(var(--ring) / 0), 0 0 0 0px hsl(var(--ring) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 0 4px hsl(var(--ring) / 0), 0 0 0 6px hsl(var(--ring) / 0.3);
+    }
   }
-  
+
+  .animate-input-focus {
+    animation: input-focus-shimmer 2s infinite;
+  }
+
   @keyframes pulse-glow {
     0%, 100% {
       transform: scale(1);
