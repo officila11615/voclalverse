@@ -22,10 +22,20 @@ export default function VocalVersePage() {
   const recognitionRef = useRef<any>(null);
 
   const startRecording = () => {
-    if (recognitionRef.current && !isRecording && !isLoading) {
-      setIsRecording(true);
-      recognitionRef.current.start();
-    }
+    // Adding a timeout to prevent race conditions where start is called before recognition has fully stopped.
+    setTimeout(() => {
+      if (recognitionRef.current && !isRecording && !isLoading) {
+        try {
+          setIsRecording(true);
+          recognitionRef.current.start();
+        } catch (error) {
+           console.error("Error starting speech recognition:", error);
+           // If starting fails, reset state and try again after a delay.
+           setIsRecording(false);
+           setTimeout(startRecording, 100);
+        }
+      }
+    }, 100); 
   };
   
   const speak = (text: string, onEndCallback?: () => void) => {
