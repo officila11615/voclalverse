@@ -95,13 +95,9 @@ export default function TextToTextPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-transparent text-foreground font-sans overflow-hidden">
       {animateBg && (
-        <div className="blob-background">
-          <div className="blob blob-1" />
-          <div className="blob blob-2" />
-          <div className="blob blob-3" />
-        </div>
+        <div className="bg-dark-animated" />
       )}
       <div className="relative z-10 flex flex-col h-full bg-black/40 backdrop-blur-sm">
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
