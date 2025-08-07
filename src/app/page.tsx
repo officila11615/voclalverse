@@ -52,7 +52,14 @@ export default function VocalVersePage() {
   };
 
   const handleError = (message: string, error?: any, speakMessage = false) => {
-    if (error) console.error(message, error);
+    if (error) {
+       // Do not log "no-speech" as a console error, as it's expected behavior
+      if (error.error !== 'no-speech') {
+        console.error(message, error);
+      }
+    } else {
+       console.error(message);
+    }
     
     if (speakMessage) {
       speak(message, () => setIsLoading(false));
@@ -80,18 +87,19 @@ export default function VocalVersePage() {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        let errorMessage = `Speech recognition error: ${event.error}`;
         let speakableMessage = "An unexpected error occurred. Please try again."
 
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           speakableMessage = "I can't access the microphone. Please grant permission and try again.";
-          errorMessage = "Microphone permission denied.";
+          handleError("Microphone permission denied.", event, true);
         } else if (event.error === 'no-speech') {
           speakableMessage = "I didn't hear anything. Please try again.";
-          errorMessage = "No speech was detected.";
+          // We still want to speak the error, just not log it to console
+          handleError(speakableMessage, event, true);
+        } else {
+           handleError(`Speech recognition error: ${event.error}`, event, true);
         }
         
-        handleError(errorMessage, event, true);
         setIsRecording(false);
         setIsLoading(false);
       };
