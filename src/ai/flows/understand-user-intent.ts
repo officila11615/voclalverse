@@ -19,7 +19,7 @@ export type UnderstandUserIntentInput = z.infer<typeof UnderstandUserIntentInput
 const UnderstandUserIntentOutputSchema = z.object({
   intent: z.string().describe('The identified intent of the user, such as scheduling an event, asking a question, or requesting information.'),
   action: z.string().optional().describe('The action to be taken based on the identified intent.'),
-  parameters: z.record(z.any()).optional().describe('Any parameters or details extracted from the user input that are relevant to fulfilling the intent.'),
+  parameters: z.record(z.string()).optional().describe('Any parameters or details extracted from the user input that are relevant to fulfilling the intent.'),
   response: z.string().describe('A helpful, generated response to the user based on their request.'),
 });
 export type UnderstandUserIntentOutput = z.infer<typeof UnderstandUserIntentOutputSchema>;
@@ -32,17 +32,17 @@ const understandUserIntentPrompt = ai.definePrompt({
   name: 'understandUserIntentPrompt',
   input: {schema: UnderstandUserIntentInputSchema},
   output: {schema: UnderstandUserIntentOutputSchema},
-  prompt: `You are a helpful virtual assistant. Analyze the user's voice command to understand their intent and generate a helpful response.
-  Given the following transcription, identify the user's intent, any relevant parameters, and what action should be taken.
-  Most importantly, generate a concise and helpful response to the user's request.
+  prompt: `You are an AI assistant. Your goal is to accurately recognize user intent and provide helpful, actionable responses.
+When you receive a transcription of a user's voice command, analyze the intent and reply with the exact answer, action step, or relevant information in a way that a smart voice assistant would.
+Never just repeat the intent—always generate a clear and useful response. If the intent isn’t clear, politely ask the user to clarify.
 
-  For example, if the user says "schedule a meeting for tomorrow at 2pm", your response should be something like "OK, I've scheduled a meeting for tomorrow at 2pm. Is there anything else I can help with?".
-  If the user asks a question, answer it.
+Transcription: {{{transcription}}}
 
-  Transcription: {{{transcription}}}
+Based on the transcription, determine the user's intent and generate a direct response. For example:
+- If the user says "What's the weather like?", your response should be "The weather is sunny with a high of 75 degrees." not "The user is asking about the weather."
+- If the user says "Set a timer for 5 minutes", your response should be "Your timer is set for 5 minutes." not "The user wants to set a timer."
 
-  Output a JSON object that conforms to the specified output schema.
-  `,
+Output a JSON object that conforms to the specified output schema.`,
 });
 
 const understandUserIntentFlow = ai.defineFlow(
