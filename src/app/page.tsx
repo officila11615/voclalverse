@@ -7,17 +7,20 @@ import { MessageSquare, Mic, Languages } from 'lucide-react';
 
 const FeatureCard = ({ title, href, icon: Icon, children }: { title: string, href: string, icon: React.ElementType, children: React.ReactNode }) => (
   <Link href={href} passHref>
-    <Card className="hover:bg-accent hover:border-primary/50 transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-        <div className="p-3 bg-primary/20 rounded-full">
-          <Icon className="w-6 h-6 text-primary" />
-        </div>
-        <CardTitle className="text-xl font-bold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-muted-foreground">{children}</p>
-      </CardContent>
-    </Card>
+    <div className="group relative rounded-2xl h-full">
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+      <Card className="relative bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl h-full transition-all duration-300 ease-in-out transform group-hover:-translate-y-1 group-hover:scale-105 group-hover:[transform:perspective(1000px)_rotateX(4deg)_rotateY(-2deg)]">
+        <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+          <div className="p-3 bg-primary/20 rounded-full">
+            <Icon className="w-6 h-6 text-primary" />
+          </div>
+          <CardTitle className="text-xl font-bold text-white/90">{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <p className="text-muted-foreground">{children}</p>
+        </CardContent>
+      </Card>
+    </div>
   </Link>
 );
 

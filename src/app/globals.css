@@ -141,6 +141,22 @@
   .animate-waveform-glow {
     animation: waveform-glow 1.5s infinite ease-in-out;
   }
+
+  @keyframes tilt {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(0.5deg);
+    }
+    75% {
+      transform: rotate(-0.5deg);
+    }
+  }
+  .animate-tilt {
+    animation: tilt 10s infinite linear;
+  }
+
 }
 
 /* Neural Threads Background */
