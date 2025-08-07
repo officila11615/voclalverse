@@ -36,6 +36,7 @@ export default function VocalVersePage() {
       utterance.onend = () => {
         setIsLoading(false);
         onEndCallback?.();
+        // Automatically start listening again after speaking is finished
         startRecording(); 
       };
       utterance.onerror = (event) => {
@@ -48,6 +49,8 @@ export default function VocalVersePage() {
     } else {
       setIsLoading(false);
       onEndCallback?.();
+      // If speech is not supported, still try to listen
+      startRecording();
     }
   };
 
@@ -70,6 +73,8 @@ export default function VocalVersePage() {
         description: message,
       });
       setIsLoading(false);
+      // If there was a non-spoken error, try to start listening again
+      startRecording();
     }
   };
 
@@ -93,9 +98,8 @@ export default function VocalVersePage() {
           speakableMessage = "I can't access the microphone. Please grant permission and try again.";
           handleError("Microphone permission denied.", event, true);
         } else if (event.error === 'no-speech') {
-          speakableMessage = "I didn't hear anything. Please try again.";
-          // We still want to speak the error, just not log it to console
-          handleError(speakableMessage, event, true);
+           // Don't speak an error, just restart listening
+           startRecording();
         } else {
            handleError(`Speech recognition error: ${event.error}`, event, true);
         }
@@ -106,6 +110,7 @@ export default function VocalVersePage() {
       
       recognitionRef.current.onend = () => {
         setIsRecording(false);
+        // This ensures listening continues in a loop
         if (!isLoading) {
           startRecording();
         }
