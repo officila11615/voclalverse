@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Message = {
   id: number;
@@ -24,55 +25,86 @@ const initialMessages: Message[] = [
   { id: 1, role: 'assistant', content: 'Hello! Type a message to start the conversation.' },
 ];
 
-
-const particlePalette = [
-  "#54a3ff", "#8166e4", "#51c6fa", "#8b79cc", "#2e93fa", "#546eea", "#6ee0f7"
-];
-
-const numParticles = 28;
-
-function getRandom(min:number, max:number) {
-  return Math.random() * (max - min) + min;
-}
-
-function ParticleField() {
-  const [particles, setParticles] = useState<React.ReactNode[]>([]);
+function NeuralThreadsBackground() {
+  const [nodes, setNodes] = useState([]);
+  const [threads, setThreads] = useState([]);
 
   useEffect(() => {
-    const generateParticles = () => {
-      const newParticles = Array.from({length: numParticles}).map((_, i) => {
-        const color = particlePalette[i % particlePalette.length];
-        const left = getRandom(0, 98);
-        const size = getRandom(12,32);
-        const duration = getRandom(14,32);
-        const delay = getRandom(0, 32);
-        return (
-          <span
-            key={i}
-            className="particle-dot"
-            style={{
-              background: color,
-              left: `${left}%`,
-              width: `${size}px`,
-              height: `${size}px`,
-              animationDuration: `${duration}s`,
-              animationDelay: `${-delay}s`
-            }}
-          />
-        );
-      });
-      setParticles(newParticles);
+    const generateNetwork = () => {
+      const isMobile = window.innerWidth < 768;
+      const numNodes = isMobile ? 5 : 8;
+      const newNodes = Array.from({ length: numNodes }).map((_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 8 + 6,
+      }));
+
+      const newThreads = [];
+      for (let i = 0; i < newNodes.length; i++) {
+        const connections = Math.floor(Math.random() * 2) + 1;
+        for (let j = 0; j < connections; j++) {
+          const targetNode = newNodes[Math.floor(Math.random() * newNodes.length)];
+          if (i !== targetNode.id) {
+            newThreads.push({
+              id: `${i}-${targetNode.id}-${j}`,
+              source: newNodes[i],
+              target: targetNode,
+            });
+          }
+        }
+      }
+      setNodes(newNodes);
+      setThreads(newThreads);
     };
 
-    generateParticles();
+    generateNetwork();
   }, []);
 
   return (
-    <div className="bg-particles">
-      {particles}
+    <div className="neural-threads-bg">
+      <svg width="100%" height="100%" className="neural-threads-svg">
+        <defs>
+          <radialGradient id="node-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="hsl(var(--primary) / 0.8)" />
+            <stop offset="100%" stopColor="hsl(var(--primary) / 0)" />
+          </radialGradient>
+        </defs>
+        {threads.map(thread => {
+          const { source, target } = thread;
+          const controlX = (source.x + target.x) / 2 + (Math.random() - 0.5) * 30;
+          const controlY = (source.y + target.y) / 2 + (Math.random() - 0.5) * 30;
+          const animationDuration = Math.random() * 10 + 10;
+          
+          return (
+            <path
+              key={thread.id}
+              d={`M ${source.x}vw ${source.y}vh Q ${controlX}vw ${controlY}vh ${target.x}vw ${target.y}vh`}
+              stroke="url(#node-glow)"
+              strokeWidth="1"
+              fill="none"
+              className="neural-thread-path"
+              style={{ animationDuration: `${animationDuration}s` }}
+            />
+          );
+        })}
+      </svg>
+      {nodes.map(node => (
+        <div
+          key={node.id}
+          className="neural-node"
+          style={{
+            left: `${node.x}vw`,
+            top: `${node.y}vh`,
+            width: `${node.size}px`,
+            height: `${node.size}px`,
+          }}
+        />
+      ))}
     </div>
   );
 }
+
 
 export default function TextToTextPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -145,7 +177,7 @@ export default function TextToTextPage() {
 
   return (
     <div className="flex flex-col h-screen bg-transparent text-foreground font-sans overflow-hidden">
-      <ParticleField />
+      <NeuralThreadsBackground />
       <div className="relative z-10 flex flex-col h-full bg-black/40 backdrop-blur-sm">
         <header className="p-4 border-b border-white/10 shadow-lg flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -227,3 +259,5 @@ export default function TextToTextPage() {
     </div>
   );
 }
+
+    

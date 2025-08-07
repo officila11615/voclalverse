@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -142,26 +143,51 @@
   }
 }
 
-.bg-particles {
+/* Neural Threads Background */
+.neural-threads-bg {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   z-index: 0;
-  background: #0e153a;  /* deep dark blue */
+  background: #111223;
   overflow: hidden;
   pointer-events: none;
 }
-.particle-dot {
+.neural-threads-svg {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+}
+.neural-node {
   position: absolute;
   border-radius: 50%;
-  opacity: 0.22;
-  pointer-events: none;
-  animation-name: particle-move;
-  animation-timing-function: linear;
+  background: radial-gradient(hsl(var(--primary) / 0.6) 30%, transparent 70%);
+  filter: blur(1px);
+  animation: pulse-node 4s infinite ease-in-out;
+}
+
+@keyframes pulse-node {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes dash {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.neural-thread-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation-name: dash;
+  animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
+  opacity: 0.3;
 }
-@keyframes particle-move {
-  0% { transform: translateY(120vh) scale(1);}
-  100% { transform: translateY(-10vh) scale(1.15);}
-}
+
+    
