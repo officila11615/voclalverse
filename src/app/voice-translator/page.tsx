@@ -1,6 +1,6 @@
+export const dynamic = 'force-dynamic';
 
 'use client';
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, Languages, Volume2, Loader2, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,6 @@ export default function VoiceTranslatorPage() {
   const [translatedText, setTranslatedText] = useState('');
   
   const { toast } = useToast();
-
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isMountedRef = useRef(false);
@@ -69,7 +68,6 @@ export default function VoiceTranslatorPage() {
         } else {
              if (isMountedRef.current) setState(TranslatorState.Idle);
         }
-
     } catch (error) {
         console.error("Translation failed:", error);
         toast({
@@ -98,7 +96,6 @@ export default function VoiceTranslatorPage() {
     const recognition = new SpeechRecognition();
     recognition.lang = sourceLang;
     recognition.interimResults = false;
-
     recognitionRef.current = recognition;
 
     recognition.onstart = () => {
@@ -157,11 +154,15 @@ export default function VoiceTranslatorPage() {
   
   const MicButtonIcon = state === TranslatorState.Thinking ? Loader2 : Mic;
 
+  // Guard the languageOptions to ensure it's an array before mapping
+  const safeLanguageOptions = Array.isArray(languageOptions) ? languageOptions : [];
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-[#1A1A2E] to-[#16213E] text-foreground">
       <header className="p-4 border-b border-white/10 shadow-lg flex items-center">
         <h1 className="text-3xl font-bold text-center font-headline tracking-wider text-white flex-1 animate-fade-in">Voice Translator</h1>
       </header>
+      
       <main className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-4xl flex flex-col items-center gap-8">
             <div className="w-full flex items-center justify-center gap-4">
@@ -172,12 +173,12 @@ export default function VoiceTranslatorPage() {
                             <SelectValue placeholder="Select language" />
                         </SelectTrigger>
                         <SelectContent>
-                           {languageOptions.map(lang => <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>)}
+                           {safeLanguageOptions.map(lang => <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="pt-8">
-                   <Languages className="w-8 h-8 text-primary"/>
+                   <Languages className="w-8 h-8 text-primary" />
                 </div>
                 <div className="flex-1">
                     <label className="text-lg mb-2 block text-center">To</label>
@@ -186,7 +187,7 @@ export default function VoiceTranslatorPage() {
                             <SelectValue placeholder="Select language" />
                         </SelectTrigger>
                         <SelectContent>
-                           {languageOptions.map(lang => <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>)}
+                           {safeLanguageOptions.map(lang => <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
@@ -205,7 +206,7 @@ export default function VoiceTranslatorPage() {
             </div>
 
             <div className="flex items-center gap-4">
-                <Button 
+                <Button                    
                     size="icon" 
                     className={cn(
                         "w-24 h-24 rounded-full bg-primary hover:bg-primary/80",
@@ -218,9 +219,8 @@ export default function VoiceTranslatorPage() {
                     {state === TranslatorState.Listening && <Mic className="w-12 h-12" />}
                     {state === TranslatorState.Error && <MicOff className="w-12 h-12" />}
                     {(state === TranslatorState.Idle || state === TranslatorState.Speaking) && <Mic className="w-12 h-12" />}
-
                 </Button>
-                 <Button 
+                 <Button                    
                     variant="outline" 
                     size="icon" 
                     className="w-16 h-16 rounded-full bg-transparent border-primary text-primary hover:bg-primary/10"
@@ -230,6 +230,7 @@ export default function VoiceTranslatorPage() {
                     <Volume2 className="w-8 h-8"/>
                 </Button>
             </div>
+
              <p className="text-muted-foreground text-center text-lg font-body min-h-[28px]">
                 {getStatusText()}
              </p>
@@ -238,4 +239,3 @@ export default function VoiceTranslatorPage() {
     </div>
   );
 }
-
